@@ -38,9 +38,9 @@ theme: dark-only
 | 토큰 | Hex | 의미 | 적용 |
 |---|---|---|---|
 | `signal.typeA` | `#EF4444` | 쌍끌이 설거지 (위험 경고) | 배지·버블·범례 |
-| `signal.typeB` | `#10B981` | 개미털기 (기회 포착) | 배지·버블·범례 |
-| `signal.typeC` | `#06B6D4` | 외인 주도 | 배지·버블·범례 |
-| `signal.typeD` | `#F59E0B` | 기관 방어 | 배지·버블·범례 |
+| `signal.typeB` | `#10B981` | 쌍끌이 매수 (기회 포착) | 배지·버블·범례 |
+| `signal.typeC` | `#06B6D4` | 개미털기 (충돌 주의) | 배지·버블·범례 |
+| `signal.typeD` | `#F59E0B` | 기관 방어 (전환 기대) | 배지·버블·범례 |
 
 배지 배경은 위 hex의 알파 20%(`signal.typeA-bg` = `#EF444433`),
 테두리·텍스트는 100% 사용한다.
@@ -83,6 +83,17 @@ theme: dark-only
 | `status.live` | `#22C55E` | 장중 갱신 중 (펄스 애니메이션) |
 | `status.confirmed` | `#10B981` | 18:00 마감 확정 |
 | `status.pending` | `#F59E0B` | 15:30 잠정치 |
+
+### 1.7 Brand — 액션·CTA 색
+
+Type·등락률·상태 같은 의미 토큰과 충돌하지 않도록 분리한 브랜드 액션 색.
+
+| 토큰 | Hex | 적용 |
+|---|---|---|
+| `brand.primary` | `#6366F1` | Primary 액션 버튼 (예: "조건 검색"), 활성 탭 강조 |
+| `brand.primary-hover` | `#4F46E5` | Primary 버튼 hover 상태 |
+
+> ⚠ Type 색(`signal.type*`)을 액션 버튼에 사용하지 않는다. 등락률 색(`num.up`)도 마찬가지. 액션·CTA에는 반드시 `brand.*` 토큰을 사용한다.
 
 ---
 
@@ -420,6 +431,10 @@ export default {
           live: "#22C55E",
           confirmed: "#10B981",
           pending: "#F59E0B"
+        },
+        brand: {
+          primary: "#6366F1",
+          "primary-hover": "#4F46E5"
         }
       },
       fontFamily: {
@@ -501,6 +516,8 @@ export default {
 | `text.muted` | `text-ink-muted` |
 | `signal.typeA` | `text-signal-a` / `bg-signal-a` |
 | `signal.typeA-bg` | `bg-signal-a-bg` |
+| `brand.primary` | `bg-brand-primary` / `text-brand-primary` |
+| `brand.primary-hover` | `hover:bg-brand-primary-hover` |
 | `defense.safe` | `text-defense-safe` / `bg-defense-safe` |
 | `subject.기관` | `text-subject-inst` / `bg-subject-inst` |
 | `subject.외국인` | `text-subject-foreign` |
@@ -591,7 +608,7 @@ const COLORS = {
 ```
 
 > 차트 라이브러리는 className을 받지 않으므로 hex를 직접 쓴다.
-> 단, **위 §11.1 toolong tokens**의 hex만 사용하고 임의 hex 도입 금지.
+> 단, **위 §11.1 토큰**의 hex만 사용하고 임의 hex 도입 금지.
 
 ---
 

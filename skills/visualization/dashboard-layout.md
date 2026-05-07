@@ -5,7 +5,11 @@ type: visualization-rule
 depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정의), ../rules/supply-analysis.md (지표 정의)
 ---
 
-# Dashboard Layout Rules
+# 대시보드 레이아웃 규칙
+
+> **역할**: War Room·Screener·Deep Dive·Archive 4개 페이지의 그리드 구조, 컴포넌트 배치, 차트 타입 선택, 드릴다운 동선을 정의한다.
+> **참조 시점**: scoring-signals.md 출력 컬럼이 준비된 직후, UI 구현 시점.
+> **선행 조건**: [DESIGN.md](./DESIGN.md)의 토큰이 정의되어 있어야 한다.
 
 본 문서는 페이지 **구조와 규칙**만 기술한다.
 색·폰트·간격은 [DESIGN.md](./DESIGN.md) 토큰명으로 참조하며 hex/px를 본문에 쓰지 않는다.
@@ -57,7 +61,6 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 | 주체별 일별 순매수 (≤30일) | Grouped Bar | 3주체 직접 비교 | Deep Dive |
 | OHLCV + 평단가 라인 | Candlestick + horizontal dashed line | 가격대 비교 | Deep Dive |
 | 단일 KPI 수치 (승률·수익률·횟수) | Stat Card | 강조 1개 값 | Archive |
-| 시간 흐름 + 누적값 | Stacked Area | 누적 추이 | (확장) |
 | Type별 종목 수 분포 | Card 4개 (가로 정렬) | 카테고리 4개 = 카드 = 직관 | War Room |
 | 종목 리스트 (다중 컬럼 정렬·필터) | Table | 행=종목, 열=지표 | Screener·Archive |
 
@@ -90,12 +93,12 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 
 ### 2.2 Row 1 — Market Brief Banner
 
-- Card 배경 `bg.surface`, 좌측 4px solid border `signal.typeC` (시장 주도 색은 동적)
+- Card 배경 `bg.surface`, 좌측 4px solid border (시장 주도 색에 따라 동적: 매수 우위 `signal.typeB`, 매도 우위 `signal.typeA`, 혼조 `text.muted`)
 - 좌측: 라벨 "Market Brief" — `text.xs` / `text.secondary` / uppercase
-- 본문: 1문장 자동 요약 — `text.base` / `text.primary`
-  - 예: "오늘 코스피는 **외국인의 반도체 집중 매수**로 상승 마감했으나, 코스닥은 **2차전지 쌍끌이 매도**로 하락했습니다."
-  - **굵은 표시** 부분은 [scoring-signals.md](../rules/scoring-signals.md)의 핵심 키워드 강조 규칙을 따른다.
-- 우측: "AI 시장 브리핑" 버튼 — 클릭 시 모달로 상세 해설.
+- 본문: [screening-rules.md §3](../rules/screening-rules.md)이 조립한 1~3단 문장 — `text.base` / `text.primary`
+  - 예: "오늘 시장은 **외국인의 반도체 집중 매수**로 상승 마감했습니다. 단, 충돌 종목(Type C·D)이 28개 발생하여 일부 종목에서 기관·외인 수급 엇갈림이 관찰됩니다."
+  - **굵은 표시** 부분은 screening-rules.md §3.2 1단 템플릿의 강조 키워드를 그대로 노출한다.
+- 우측: "AI 시장 브리핑" 버튼 — 클릭 시 모달로 상세 해설. 버튼 색은 `brand.primary` 사용.
 
 ### 2.3 Row 2-Left — 시장 3파전 주도력 (Diverging Bar)
 
@@ -127,16 +130,20 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 ### 2.5 Row 2-Right — 오늘의 주목 종목
 
 - Card 타이틀: "👁 오늘의 주목 종목"
-- 내부 구조: Type별 그룹 (수직 스택)
-  - Type A (위험 경고) — 상위 3종목
-  - Type B (기회 포착) — 상위 3종목
-  - Type C (외인 주도) — 상위 3종목
-  - Type D (기관 방어) — 상위 3종목
+- 내부 구조: Type별 그룹 (수직 스택). 노출 종목 수는 [screening-rules.md §2.1](../rules/screening-rules.md)을 단일 출처로 한다.
+  - Type A (위험 경고) — **전체 노출** (위험 경고는 빠짐없이 표시)
+  - Type B (기회 포착) — Top 5 (`weighted_priority` 내림차순)
+  - Type C (충돌 주의) — Top 5
+  - Type D (전환 기대) — Top 5
+- Type A 종목이 많을 경우 카드 내부에 자체 스크롤 적용 (max-height: 320px)
 - 각 종목 행:
   - 좌측: Type 배지 + 종목명
   - 우측: chevron-right 아이콘
-  - 클릭 → Deep Dive (`?ticker={code}`)
+  - 클릭 → Deep Dive (`/deep-dive/{ticker}`)
 - 그룹 헤더: Type 배지 색의 좌측 2px solid border + Type명 라벨
+- 카드 하단: 면책 고지 1줄 (`text.2xs` / `text.muted`)
+  - "※ 규칙 기반 자동 분류 결과로, 매수·매도 조언이 아닙니다."
+  - [scoring-signals.md §5](../rules/scoring-signals.md) 면책 고지 부착 규칙에 따른다.
 
 ### 2.6 Row 3 — 오늘의 시그널 요약
 
@@ -145,9 +152,11 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 | 카드 | 라벨 | 수치 | 색 |
 |---|---|---|---|
 | Type A | "쌍끌이 설거지" | "12 종목" | `signal.typeA` |
-| Type B | "개미 털기" | "28 종목" | `signal.typeB` |
-| Type C | "외인 주도장" | "45 종목" | `signal.typeC` |
-| Type D | "기관 방어장" | "31 종목" | `signal.typeD` |
+| Type B | "쌍끌이 매수" | "28 종목" | `signal.typeB` |
+| Type C | "개미털기" | "45 종목" | `signal.typeC` |
+| Type D | "기관 방어" | "31 종목" | `signal.typeD` |
+
+> Type 라벨은 [screening-rules.md §1.1](../rules/screening-rules.md)을 단일 출처로 한다. 사분면 라벨(쌍끌이 매도, 외인 주도, 팽팽한 방어전 등)과 혼동하지 않는다.
 
 각 카드 좌측 4px border = Type 색. 클릭 시 Screener로 이동(해당 Type 자동 필터).
 
@@ -175,12 +184,17 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 | 컨트롤 | 타입 | 옵션 / 범위 |
 |---|---|---|
 | Type 선택 | Select | 전체 Type / Type A / Type B / Type C / Type D |
-| 평단가 상태 | Select | 전체 상태 / 안전 / 주의(노랑) / 주의(주황) / 위험 |
-| 기관 SFI 하한선 | Slider | -10 ~ +10, step 0.1, 기본 -10 |
-| 외국인 SFI 하한선 | Slider | -10 ~ +10, step 0.1, 기본 -10 |
+| 평단가 상태 | Select | 전체 상태 / 안전 구역 / 외인 방어선 도달 / 기관 방어선 도달 / 방어선 붕괴 |
+| 기관 SFI 하한선 | Slider | -30 ~ +30, step 0.1, 기본 -30 |
+| 외국인 SFI 하한선 | Slider | -30 ~ +30, step 0.1, 기본 -30 |
+
+> 슬라이더 범위는 [supply-analysis.md §2.2](../rules/supply-analysis.md)의 실제 SFI 분포(대부분 `[-30, +30]`)에 맞춘다. 기본값 `-30`은 "필터 없음"과 사실상 동일하다.
+
+> 평단가 상태 라벨은 [data-schema.md §2.6](../rules/data-schema.md) 표시 라벨 매핑(`SAFE`→안전 구역 등)을 단일 출처로 한다.
+> `INSUFFICIENT_DATA`(데이터 부족) 상태 종목은 필터 옵션에 노출하지 않고 검색 결과에서도 자동 제외한다.
 
 - 슬라이더 우측에 현재값 표시 (`font.numeric` / `text.sm`)
-- "조건 검색" 버튼: `signal.typeC` 배경, `text.inverse` 텍스트, `radius.md`
+- "조건 검색" 버튼: `brand.primary` 배경, `text.inverse` 텍스트, `radius.md`, hover 시 `brand.primary-hover`
 
 ### 3.3 종목 테이블
 
@@ -196,7 +210,7 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 | 외인 주도력 | 우측 | `font.numeric` (% 표기) |
 | 상태 | 중앙 | 상태 배지 (DESIGN.md 5.2) |
 
-- 행 클릭 → Deep Dive (`?ticker={code}`)
+- 행 클릭 → Deep Dive (`/deep-dive/{ticker}`)
 - 헤더 클릭 → 해당 컬럼 정렬 토글 (asc/desc)
 - 페이지네이션: 하단 중앙, 20행 / 페이지
 
@@ -204,7 +218,7 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 
 ## 4. 페이지 3: Deep Dive
 
-> 단일 종목 심층 분석. URL 파라미터 `?ticker={code}` 필수.
+> 단일 종목 심층 분석. 라우트 path 파라미터 `/deep-dive/:ticker` 필수.
 
 ### 4.1 그리드 구조
 
@@ -313,7 +327,7 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 
 ### 5.2 Row 1 — Type 탭
 
-- 4개 탭 가로 정렬: Type A (쌍끌이 설거지) / Type B (개미털기) / Type C (외인주도) / Type D (기관방어)
+- 4개 탭 가로 정렬: Type A (쌍끌이 설거지) / Type B (쌍끌이 매수) / Type C (개미털기) / Type D (기관 방어)
 - 활성 탭: 하단 2px border = 해당 Type 색, 텍스트 `text.primary`
 - 비활성: `text.secondary`
 - 탭 변경 시 Row 2·Row 3 데이터 갱신
@@ -358,11 +372,11 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 
 | Level | 페이지 | 트리거 | 다음 페이지 | 전달 파라미터 |
 |---|---|---|---|---|
-| L1 | War Room | 섹터 버블 클릭 | Screener | `?sector={섹터명}` |
-| L1 | War Room | Type 카드 클릭 | Screener | `?type={A\|B\|C\|D}` |
-| L1 | War Room | 주목 종목 클릭 | Deep Dive | `?ticker={code}` |
-| L2 | Screener | 행 클릭 | Deep Dive | `?ticker={code}` |
-| L3 | Deep Dive | 패턴 카드 클릭 | Archive | `?type={현재 Type}` |
+| L1 | War Room | 섹터 버블 클릭 | Screener | `/screener?sector={섹터명}` |
+| L1 | War Room | Type 카드 클릭 | Screener | `/screener?type={A\|B\|C\|D}` |
+| L1 | War Room | 주목 종목 클릭 | Deep Dive | `/deep-dive/{ticker}` |
+| L2 | Screener | 행 클릭 | Deep Dive | `/deep-dive/{ticker}` |
+| L3 | Deep Dive | 패턴 카드 클릭 | Archive | `/archive?type={현재 Type}` |
 
 뒤로가기 시 직전 필터·스크롤 위치를 보존한다(브라우저 history 활용).
 
@@ -381,8 +395,10 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 | 등락률·수익률 0 | `num.flat` |
 | 수급 바차트 (3주체) | `subject.{개인\|기관\|외국인}` |
 | 시스템 상태 배지 | `status.{live\|confirmed\|pending}` |
+| 액션 버튼·CTA (예: 조건 검색) | `brand.primary` (hover: `brand.primary-hover`) |
 
 > ⚠ Type 색을 등락률에 쓰거나, 등락률 색을 Type에 쓰면 의미 충돌. 절대 금지.
+> ⚠ 액션 버튼·CTA에는 의미 토큰(`signal.*`, `num.*`, `defense.*`)을 사용하지 않는다. `brand.*`만 허용.
 
 ---
 
@@ -440,10 +456,9 @@ depends-on: ./DESIGN.md (토큰 참조), ../rules/screening-rules.md (Type 정�
 |---|---|---|
 | Diverging Bar | Recharts | `<BarChart layout="vertical">` + 음/양 데이터 분리 |
 | Bubble | Recharts | `<ScatterChart>` + `<ZAxis>` 크기 매핑 |
-| **Candlestick** | **lightweight-charts (TradingView)** | **§10.1 참조** |
+| **Candlestick** | **lightweight-charts (TradingView)** | **§10.1 참조** — Recharts only 원칙의 유일 예외 |
 | Grouped Bar | Recharts | `<BarChart>` 다중 `<Bar>` |
 | Stat Card | (라이브러리 없음) | DESIGN.md 5.3 컴포넌트 |
-| Stacked Area | Recharts | `<AreaChart stackId="1">` |
 
 축·그리드·툴팁 스타일은 모두 DESIGN.md 6장 토큰을 적용한다.
 
@@ -553,10 +568,52 @@ volume.setData(candles.map(c => ({
 
 ## 11.5 페이지 ↔ API 호출 매핑
 
-각 페이지가 호출하는 엔드포인트는 [api-contract.md](../rules/api-contract.md) §0.6 참조.
-프론트엔드 데이터 페칭은 모두 TanStack Query로 한다.
+프론트엔드 데이터 페칭은 모두 TanStack Query(React Query)로 한다.
 
-### War Room (`/war-room`)
+### 공통 규약
+
+- **Base URL**: `/api/v1` (SKILL.md 기술 스택 §백엔드 기준)
+- **응답 envelope**: `{ "data": <payload>, "status": "ok" | "error", "message": <string\|null> }`
+- **`date` 파라미터**: 미지정 시 [data-pipeline.md §7.2 `latest_trading_day()`](../rules/data-pipeline.md) 결과를 기본값으로 사용. 휴장일 명시 시 422 반환.
+- **컬럼명**: 모든 응답은 [data-schema.md §1](../rules/data-schema.md)의 snake_case 표준을 그대로 사용한다.
+- **에러 응답**: `status: "error"` + HTTP 4xx/5xx + `message`에 사람이 읽을 수 있는 한글 메시지.
+
+### API 엔드포인트 명세
+
+#### War Room
+| 메서드 | 경로 | 응답 `data` 형태 |
+|---|---|---|
+| GET | `/api/v1/market/brief?date=YYYY-MM-DD` | `{ date, market_brief_text, kospi_close, kospi_change_pct, kosdaq_close, kosdaq_change_pct, usdkrw_close, status_badge }` |
+| GET | `/api/v1/market/dominance?date=YYYY-MM-DD` | `{ kospi: {indi, inst, frgn}, kosdaq: {indi, inst, frgn} }` (각 값 -100~+100 정규화 SFI 합) |
+| GET | `/api/v1/market/sectors?date=YYYY-MM-DD` | `[{ sector, sfi_inst, sfi_frgn, trade_value, dominant_type }]` (전술 레이더 맵 버블 데이터) |
+| GET | `/api/v1/market/signals?date=YYYY-MM-DD` | `{ count_a, count_b, count_c, count_d, top_picks: { A: [...], B: [...], C: [...], D: [...] } }` (각 ticker 행은 `{ticker, name, type, type_intensity, weighted_priority}`) |
+
+#### Screener
+| 메서드 | 경로 | 응답 `data` 형태 |
+|---|---|---|
+| GET | `/api/v1/screener?date=&type=&defense=&sfi_inst_min=&sfi_frgn_min=&page=&size=` | `{ items: [...], total, page, size }` (item: ticker·name·sector·close·change_pct·type·sfi_inst·sfi_frgn·dominance_*·defense_status) |
+
+쿼리 파라미터 모두 optional. `type=ALL`, `defense=ALL`은 전체. `sfi_*_min` 미지정 시 -30(필터 없음).
+
+#### Deep Dive
+| 메서드 | 경로 | 응답 `data` 형태 |
+|---|---|---|
+| GET | `/api/v1/stock/{ticker}?date=YYYY-MM-DD` | `{ ticker, name, sector, market, close, change_pct, type, type_intensity, sfi_inst, sfi_frgn, defense_status, avg_cost_20d_inst, avg_cost_20d_frgn, deep_dive_headline, deep_dive_line1, deep_dive_line2 }` |
+| GET | `/api/v1/stock/{ticker}/candles?period=1M\|3M\|6M\|1Y` | `[{ date, open, high, low, close, volume }]` |
+| GET | `/api/v1/stock/{ticker}/flows?days=7` | `[{ date, net_buy_indi, net_buy_inst, net_buy_frgn }]` (단위: 억원) |
+| GET | `/api/v1/stock/{ticker}/ma-events?limit=5` | `[{ date, event_type, short_value, long_value, interpretation }]` (`interpretation`은 scoring-signals.md 템플릿 결과) |
+| GET | `/api/v1/stock/{ticker}/similar-patterns?date=&n=3` | `[{ similar_ticker, similar_name, period_start, period_end, similarity, return_5d, return_20d }]` (supply-analysis.md §7) |
+
+#### Archive
+| 메서드 | 경로 | 응답 `data` 형태 |
+|---|---|---|
+| GET | `/api/v1/archive/summary?date=YYYY-MM-DD` | `{ A: {...}, B: {...}, C: {...}, D: {...} }` (각 Type 객체: `{ total_count, avg_return_5d, win_rate_5d, avg_return_20d, win_rate_20d, archive_summary }`) |
+| GET | `/api/v1/archive/cases?type=A&page=1&size=50` | `{ items: [...], total, page, size }` (item: `{ date, ticker, name, sector, sfi_inst, sfi_frgn, return_5d, return_20d }`) |
+
+### React Query 호출 예시
+각 페이지가 호출하는 엔드포인트와 React Query key 패턴은 다음과 같다.
+
+### War Room (`/`)
 
 ```tsx
 const { data: brief }     = useQuery({ queryKey: ["market","brief", date],     queryFn: () => api.getBrief(date) });
@@ -595,8 +652,9 @@ const summary = useQuery({ queryKey: ["archive","summary"],                 quer
 const cases   = useQuery({ queryKey: ["archive","cases", type, page],       queryFn: () => api.getArchiveCases(type, page) });
 ```
 
-응답 타입은 [api-contract.md](../rules/api-contract.md)의 응답 JSON과 1:1 일치.
-`frontend/src/types/api.ts`에 TypeScript 타입을 정의해 모든 페이지에서 공유.
+응답 타입은 백엔드(FastAPI) 라우터의 Pydantic 모델과 1:1 일치시킨다.
+`frontend/src/types/api.ts`에 TypeScript 타입을 정의해 모든 페이지에서 공유한다.
+컬럼명은 [data-schema.md §2](../rules/data-schema.md)의 snake_case 표준을 그대로 사용한다.
 
 ---
 
