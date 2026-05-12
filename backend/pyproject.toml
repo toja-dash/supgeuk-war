@@ -1,0 +1,23 @@
+[project]
+name = "supgeuk-war-backend"
+version = "0.1.0"
+description = "FastAPI backend for SUPGEUK WAR"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy",
+    "alembic",
+    "asyncpg",
+    "redis",
+    "apscheduler",
+    "pandas",
+    "numpy",
+    "pykrx",
+    "finance-datareader",
+    "pydantic-settings"
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

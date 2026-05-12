@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body { @apply bg-canvas text-ink-primary font-display antialiased; }
+  body { font-feature-settings: "tnum"; }   /* 숫자 고정폭 */
+}
