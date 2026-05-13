@@ -136,6 +136,18 @@ async def get_cases(
     db: AsyncSession = Depends(get_db)
 ):
     latest_date = await db.scalar(select(func.max(MarketIndicators.date)))
+    if latest_date is None:
+        return {
+            "data": {
+                "items": [],
+                "total": 0,
+                "page": page,
+                "size": size,
+            },
+            "status": "ok",
+            "message": None,
+        }
+
     start_date = latest_date - timedelta(days=ARCHIVE_LOOKBACK_DAYS) if latest_date else None
     signal_type = type if type in SIGNAL_TYPES else "B"
 
