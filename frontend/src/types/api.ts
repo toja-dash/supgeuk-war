@@ -131,8 +131,8 @@ export interface SimilarPattern {
   period_start: string;
   period_end: string;
   similarity: number;
-  return_5d: number;
-  return_20d: number;
+  return_5d: number | null;
+  return_20d: number | null;
 }
 
 export interface ArchiveSummaryItem {
