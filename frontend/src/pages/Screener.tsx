@@ -14,7 +14,7 @@ import { useFilterStore } from '../stores/filterStore';
 
 const TYPE_OPTIONS = [
   { value: 'ALL', label: '전체 Type' },
-  { value: 'A', label: 'Type A · 쌍끌이 설거지' },
+  { value: 'A', label: 'Type A · 쌍끌이 설거지 (방어선 이탈)' },
   { value: 'B', label: 'Type B · 쌍끌이 매수' },
   { value: 'C', label: 'Type C · 개미털기' },
   { value: 'D', label: 'Type D · 기관 방어' },
