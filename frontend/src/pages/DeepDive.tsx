@@ -36,6 +36,20 @@ const TYPE_COLOR: Record<SignalType, string> = {
 
 const PERIODS = ['1M', '3M', '6M', '1Y'] as const;
 
+function isTradableCandle(candle: Candle) {
+  return (
+    candle.open > 0 &&
+    candle.high > 0 &&
+    candle.low > 0 &&
+    candle.close > 0 &&
+    candle.volume > 0
+  );
+}
+
+function positiveOrNull(value: number | null) {
+  return value != null && value > 0 ? value : null;
+}
+
 export default function DeepDive() {
   const { ticker } = useParams();
   const navigate = useNavigate();
@@ -69,14 +83,18 @@ export default function DeepDive() {
 
   const s = stock ?? mockStock(ticker ?? '005930');
   const c = candles?.length ? candles : mockCandles;
+  const validCandles = c.filter(isTradableCandle);
   const f = flows ?? mockFlows;
   const ma = maEvents ?? mockMaEvents;
   const sim = patterns ?? mockSimilarPatterns;
 
-  const today = c[c.length - 1];
-  const yest = c[c.length - 2];
-  const yearHigh = Math.max(...c.map((x) => x.high));
-  const yearLow = Math.min(...c.map((x) => x.low));
+  const today = validCandles[validCandles.length - 1];
+  const yest = validCandles[validCandles.length - 2];
+  const yearHigh = validCandles.length ? Math.max(...validCandles.map((x) => x.high)) : null;
+  const yearLow = validCandles.length ? Math.min(...validCandles.map((x) => x.low)) : null;
+  const instAvg = positiveOrNull(s.avg_cost_20d_inst);
+  const foreignAvg = positiveOrNull(s.avg_cost_20d_frgn);
+  const hasSignalData = s.defense_status !== 'INSUFFICIENT_DATA';
   const accentColor = TYPE_COLOR[s.type];
 
   return (
@@ -132,10 +150,10 @@ export default function DeepDive() {
 
       {/* SFI 요약 */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <SfiSummaryCard label="기관 SFI" value={s.sfi_inst} color="#06B6D4" />
-        <SfiSummaryCard label="외국인 SFI" value={s.sfi_frgn} color="#A855F7" />
-        <SfiSummaryCard label="20일 기관 평단" value={s.avg_cost_20d_inst} color="#06B6D4" isPrice />
-        <SfiSummaryCard label="20일 외인 평단" value={s.avg_cost_20d_frgn} color="#A855F7" isPrice />
+        <SfiSummaryCard label="기관 SFI" value={hasSignalData ? s.sfi_inst : null} color="#06B6D4" />
+        <SfiSummaryCard label="외국인 SFI" value={hasSignalData ? s.sfi_frgn : null} color="#A855F7" />
+        <SfiSummaryCard label="20일 기관 평단" value={instAvg} color="#06B6D4" isPrice />
+        <SfiSummaryCard label="20일 외인 평단" value={foreignAvg} color="#A855F7" isPrice />
       </div>
 
       {/* Row 3 — 가격 차트 + 방어선 ladder */}
@@ -181,22 +199,22 @@ export default function DeepDive() {
           <div className="min-w-0">
             {chartMode === 'candle' ? (
               <CandlestickChart
-                candles={c}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                candles={validCandles}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
               />
             ) : (
               <AreaTrend
-                candles={c}
+                candles={validCandles}
                 color={accentColor}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
                 height={400}
               />
             )}
             <div className="mt-3 flex items-center justify-center gap-6 text-2xs text-ink-secondary">
-              <LegendDash color="#06B6D4" label={`기관 평단 ${fmtPrice(s.avg_cost_20d_inst)}`} />
-              <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(s.avg_cost_20d_frgn)}`} />
+              <LegendDash color="#06B6D4" label={`기관 평단 ${fmtPrice(instAvg)}`} />
+              <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(foreignAvg)}`} />
             </div>
           </div>
           <div className="min-w-0">
@@ -206,8 +224,8 @@ export default function DeepDive() {
               </div>
               <DefenseLadder
                 currentPrice={s.close}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
               />
             </div>
           </div>
@@ -238,16 +256,16 @@ export default function DeepDive() {
             }
           >
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <PriceRow label="1일 최저" value={fmtPrice(today.low)} />
+              <PriceRow label="1일 최저" value={fmtPrice(today?.low ?? null)} />
               <PriceRow label="1년 최저" value={fmtPrice(yearLow)} />
-              <PriceRow label="1일 최고" value={fmtPrice(today.high)} />
+              <PriceRow label="1일 최고" value={fmtPrice(today?.high ?? null)} />
               <PriceRow label="1년 최고" value={fmtPrice(yearHigh)} />
-              <PriceRow label="시작가" value={fmtPrice(today.open)} />
-              <PriceRow label="종가" value={fmtPrice(today.close)} />
-              <PriceRow label="거래량" value={`${fmtInt(today.volume)}주`} />
+              <PriceRow label="시작가" value={fmtPrice(today?.open ?? null)} />
+              <PriceRow label="종가" value={fmtPrice(today?.close ?? null)} />
+              <PriceRow label="거래량" value={today ? `${fmtInt(today.volume)}주` : '-'} />
               <PriceRow
                 label="거래대금"
-                value={`${fmtInt(Math.round((today.close * today.volume) / 1e8))}억`}
+                value={today ? `${fmtInt(Math.round((today.close * today.volume) / 1e8))}억` : '-'}
               />
               {yest && (
                 <>

@@ -31,7 +31,10 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
         close: c.close,
         volume: c.volume,
       }))
-      .filter((c): c is typeof c & { time: Time } => Boolean(c.time));
+      .filter(
+        (c): c is typeof c & { time: Time } =>
+          Boolean(c.time) && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0 && c.volume > 0
+      );
 
     const chart = createChart(ref.current, {
       width: ref.current.clientWidth,
