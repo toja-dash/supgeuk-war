@@ -179,15 +179,18 @@ export default function WarRoom() {
 function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
   const change = pick.change_pct;
   const intensity = pick.type_intensity ?? 0;
-  const changeCls =
-    change === undefined
-      ? 'text-ink-muted'
-      : change > 0
-        ? 'text-num-up'
-        : change < 0
-          ? 'text-num-down'
-          : 'text-num-flat';
   const typeColor = TYPE_META[pick.type].color;
+
+  // 좌측 수치: 등락률이 있으면 등락률(색상 적용), 없으면 강도%로 대체
+  const hasChange = change !== undefined;
+  const numericText = hasChange ? fmtPct(change) : `${Math.round(intensity * 100)}%`;
+  const numericCls = hasChange
+    ? change > 0
+      ? 'text-num-up'
+      : change < 0
+        ? 'text-num-down'
+        : 'text-num-flat'
+    : 'text-ink-secondary';
 
   return (
     <li>
@@ -196,20 +199,20 @@ function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
         className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition hover:bg-surface-2"
       >
         <TypeBadge type={pick.type} />
-        <span className="flex-grow truncate text-sm text-ink-primary">{pick.name}</span>
-        <span className={`font-numeric text-2xs ${changeCls}`}>
-          {change !== undefined ? fmtPct(change) : '-'}
+        <span className="min-w-0 flex-grow truncate text-sm text-ink-primary">{pick.name}</span>
+        <span className={`shrink-0 font-numeric text-2xs tabular-nums ${numericCls}`}>
+          {numericText}
         </span>
         <span
-          className="hidden h-1 w-10 overflow-hidden rounded-full bg-surface-2 lg:block"
+          className="block h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-surface-2"
           title={`강도 ${Math.round(intensity * 100)}%`}
         >
           <span
-            className="block h-full rounded-full"
-            style={{ width: `${intensity * 100}%`, background: typeColor }}
+            className="block h-full rounded-full transition-all"
+            style={{ width: `${Math.max(0, Math.min(1, intensity)) * 100}%`, background: typeColor }}
           />
         </span>
-        <ChevronRight className="h-4 w-4 text-ink-muted transition group-hover:translate-x-0.5 group-hover:text-ink-primary" />
+        <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition group-hover:translate-x-0.5 group-hover:text-ink-primary" />
       </button>
     </li>
   );

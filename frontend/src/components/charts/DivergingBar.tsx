@@ -58,6 +58,7 @@ export function DivergingBar({ rows }: { rows: Row[] }) {
               tickLine={false}
             />
             <Tooltip
+              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
               contentStyle={{
                 backgroundColor: '#111827',
                 border: '1px solid #374151',
@@ -65,6 +66,7 @@ export function DivergingBar({ rows }: { rows: Row[] }) {
                 fontSize: 12,
               }}
               labelStyle={{ color: '#F9FAFB' }}
+              itemStyle={{ color: '#F9FAFB' }}
               formatter={(v) => {
                 const n = Number(v);
                 return `${n > 0 ? '+' : ''}${n.toFixed(1)}`;

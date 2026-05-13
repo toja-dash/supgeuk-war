@@ -8,7 +8,7 @@ const TYPE_CLASSES = {
 export function TypeBadge({ type }: { type: 'A' | 'B' | 'C' | 'D' | null | string }) {
   if (!type || !TYPE_CLASSES[type as keyof typeof TYPE_CLASSES]) return null;
   return (
-    <span className={`inline-flex h-6 items-center rounded-sm border px-2 text-xs font-semibold ${TYPE_CLASSES[type as keyof typeof TYPE_CLASSES]}`}>
+    <span className={`inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-sm border px-2 text-xs font-semibold ${TYPE_CLASSES[type as keyof typeof TYPE_CLASSES]}`}>
       Type {type}
     </span>
   );
