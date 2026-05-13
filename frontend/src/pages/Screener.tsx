@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
@@ -35,9 +35,44 @@ type SortKey = keyof Pick<
 
 export default function Screener() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const filters = useFilterStore();
   const [sortKey, setSortKey] = useState<SortKey>('change_pct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    const next = {
+      type: normalizeOption(searchParams.get('type'), TYPE_OPTIONS.map((o) => o.value), 'ALL'),
+      defense: normalizeOption(searchParams.get('defense'), DEFENSE_OPTIONS.map((o) => o.value), 'ALL'),
+      sfi_inst_min: normalizeNumber(searchParams.get('sfi_inst_min'), -30),
+      sfi_frgn_min: normalizeNumber(searchParams.get('sfi_frgn_min'), -30),
+    };
+
+    if (
+      next.type !== filters.type ||
+      next.defense !== filters.defense ||
+      next.sfi_inst_min !== filters.sfi_inst_min ||
+      next.sfi_frgn_min !== filters.sfi_frgn_min
+    ) {
+      filters.setFilters(next);
+    }
+  }, [searchParams]);
+
+  const updateFilter = (key: 'type' | 'defense' | 'sfi_inst_min' | 'sfi_frgn_min', value: string | number) => {
+    const next = new URLSearchParams(searchParams);
+    const stringValue = String(value);
+    if (
+      (key === 'type' && stringValue === 'ALL') ||
+      (key === 'defense' && stringValue === 'ALL') ||
+      ((key === 'sfi_inst_min' || key === 'sfi_frgn_min') && Number(value) === -30)
+    ) {
+      next.delete(key);
+    } else {
+      next.set(key, stringValue);
+    }
+    setSearchParams(next, { replace: true });
+    filters.setFilters({ [key]: value } as Parameters<typeof filters.setFilters>[0]);
+  };
 
   const { data } = useQuery({
     queryKey: [
@@ -88,13 +123,13 @@ export default function Screener() {
             label="Type 선택"
             value={filters.type}
             options={TYPE_OPTIONS}
-            onChange={filters.setType}
+            onChange={(value) => updateFilter('type', value)}
           />
           <Select
             label="평단가 상태"
             value={filters.defense}
             options={DEFENSE_OPTIONS}
-            onChange={filters.setDefense}
+            onChange={(value) => updateFilter('defense', value)}
           />
           <Slider
             label="기관 SFI 하한선"
@@ -103,7 +138,7 @@ export default function Screener() {
             max={30}
             step={0.1}
             accentColor="#06B6D4"
-            onChange={filters.setSfiInstMin}
+            onChange={(value) => updateFilter('sfi_inst_min', value)}
           />
           <Slider
             label="외국인 SFI 하한선"
@@ -112,7 +147,7 @@ export default function Screener() {
             max={30}
             step={0.1}
             accentColor="#A855F7"
-            onChange={filters.setSfiFrgnMin}
+            onChange={(value) => updateFilter('sfi_frgn_min', value)}
           />
           <button className="flex h-9 items-center justify-center gap-1.5 rounded-md bg-brand-primary px-4 text-sm font-semibold text-ink-primary transition hover:bg-brand-primary-hover">
             <SearchIcon className="h-4 w-4" />
@@ -265,4 +300,14 @@ function SortIndicator({ active, dir }: { active?: boolean; dir?: 'asc' | 'desc'
 function NumPct({ value }: { value: number }) {
   const cls = value > 0 ? 'text-num-up' : value < 0 ? 'text-num-down' : 'text-num-flat';
   return <span className={`font-numeric ${cls}`}>{fmtSfi(value)}</span>;
+}
+
+function normalizeOption(value: string | null, allowed: string[], fallback: string) {
+  return value && allowed.includes(value) ? value : fallback;
+}
+
+function normalizeNumber(value: string | null, fallback: number) {
+  if (value === null) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }

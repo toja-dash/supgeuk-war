@@ -9,6 +9,7 @@ interface FilterState {
   setDefense: (d: string) => void;
   setSfiInstMin: (v: number) => void;
   setSfiFrgnMin: (v: number) => void;
+  setFilters: (filters: Partial<Pick<FilterState, 'type' | 'defense' | 'sfi_inst_min' | 'sfi_frgn_min'>>) => void;
 }
 
 export const useFilterStore = create<FilterState>((set) => ({
@@ -20,4 +21,5 @@ export const useFilterStore = create<FilterState>((set) => ({
   setDefense: (d) => set({ defense: d }),
   setSfiInstMin: (v) => set({ sfi_inst_min: v }),
   setSfiFrgnMin: (v) => set({ sfi_frgn_min: v }),
+  setFilters: (filters) => set(filters),
 }));
