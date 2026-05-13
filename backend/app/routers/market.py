@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import desc, func, select
+from sqlalchemy import desc, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -93,18 +93,36 @@ async def get_dominance(date: Optional[date] = Query(None), db: AsyncSession = D
 async def get_sectors(date: Optional[date] = Query(None), db: AsyncSession = Depends(get_db)):
     t_date = await get_target_date(date, db)
 
-    stmt = (
-        select(
-            StockMaster.sector,
-            func.avg(MarketIndicators.sfi_inst).label("sfi_inst"),
-            func.avg(MarketIndicators.sfi_frgn).label("sfi_frgn"),
+    result = await db.execute(
+        text(
+            """
+            select
+                coalesce(nullif(s.sector, ''), '기타') as sector,
+                sum(coalesce(r.trade_value, 0)) as trade_value,
+                case
+                  when sum(coalesce(r.trade_value, 0)) > 0
+                  then sum(coalesce(i.sfi_inst, 0) * coalesce(r.trade_value, 0)) / sum(coalesce(r.trade_value, 0))
+                  else avg(i.sfi_inst)
+                end as sfi_inst,
+                case
+                  when sum(coalesce(r.trade_value, 0)) > 0
+                  then sum(coalesce(i.sfi_frgn, 0) * coalesce(r.trade_value, 0)) / sum(coalesce(r.trade_value, 0))
+                  else avg(i.sfi_frgn)
+                end as sfi_frgn
+            from market_indicators i
+            join stock_master s on i.ticker = s.ticker
+            join market_raw_data r on r.ticker = i.ticker and r.date = i.date
+            where i.date = :target_date
+              and s.sector is not null
+              and i.type in ('A', 'B', 'C', 'D')
+            group by coalesce(nullif(s.sector, ''), '기타')
+            order by trade_value desc
+            limit 12
+            """
         )
-        .join(StockMaster, MarketIndicators.ticker == StockMaster.ticker)
-        .where(MarketIndicators.date == t_date)
-        .where(StockMaster.sector.isnot(None))
-        .group_by(StockMaster.sector)
+        ,
+        {"target_date": t_date},
     )
-    result = await db.execute(stmt)
 
     data = []
     for row in result.all():
@@ -121,13 +139,12 @@ async def get_sectors(date: Optional[date] = Query(None), db: AsyncSession = Dep
                 "sector": row.sector,
                 "sfi_inst": round(float(row.sfi_inst or 0), 2),
                 "sfi_frgn": round(float(row.sfi_frgn or 0), 2),
-                "trade_value": 0,
+                "trade_value": int(row.trade_value or 0),
                 "dominant_type": dom_type,
             }
         )
 
-    data.sort(key=lambda x: x["sfi_inst"] + x["sfi_frgn"], reverse=True)
-    return {"data": data[:10], "status": "ok", "message": None}
+    return {"data": data, "status": "ok", "message": None}
 
 
 @router.get("/signals")
