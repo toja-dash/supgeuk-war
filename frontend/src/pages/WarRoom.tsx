@@ -93,9 +93,9 @@ export default function WarRoom() {
       </Card>
 
       {/* Row 2 — 3-column grid */}
-      <div className="grid grid-cols-12 items-start gap-6">
+      <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 xl:col-span-3">
-          <Card title="📊 시장 3파전 주도력">
+          <Card title="📊 시장 3파전 주도력" className="h-[390px]">
             <DivergingBar
               rows={[
                 { label: '코스피', indi: dom.kospi.indi, inst: dom.kospi.inst, frgn: dom.kospi.frgn },
@@ -109,6 +109,7 @@ export default function WarRoom() {
           <Card
             title="🎯 전술 레이더 맵"
             subtitle="버블 크기 = 거래대금 · 색 = 수급 주도력"
+            className="h-[390px]"
           >
             <SectorBubble
               data={sectorData}
@@ -120,7 +121,7 @@ export default function WarRoom() {
         </div>
 
         <div className="col-span-12 xl:col-span-3">
-          <Card title="👁 오늘의 주목 종목" className="h-full">
+          <Card title="👁 오늘의 주목 종목" className="h-[390px]">
             <div className="flex max-h-[460px] flex-col gap-4 overflow-y-auto pr-1">
               {(['A', 'B', 'C', 'D'] as const).map((type) => {
                 const meta = TYPE_META[type];
