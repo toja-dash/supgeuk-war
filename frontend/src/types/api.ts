@@ -153,6 +153,14 @@ export interface ArchiveCase {
   sector: string;
   sfi_inst: number;
   sfi_frgn: number;
+  return_5d: number | null;
+  return_20d: number | null;
+}
+
+export interface ArchiveHighlight extends ArchiveCase {
+  type: SignalType;
+  type_intensity: number;
+  priority_score: number;
   return_5d: number;
   return_20d: number;
 }
