@@ -29,7 +29,7 @@ const TYPE_LABEL: Record<SignalType, string> = {
 
 interface Props {
   data: Bubble[];
-  onSelect?: (sector: string) => void;
+  onSelect?: (sector: string, type: SignalType) => void;
 }
 
 export function SectorBubble({ data, onSelect }: Props) {
@@ -128,9 +128,10 @@ export function SectorBubble({ data, onSelect }: Props) {
           />
           <Scatter
             data={chartData}
-            onClick={(d: { payload?: (typeof chartData)[number] }) =>
-              d?.payload?.sector && onSelect?.(d.payload.sector)
-            }
+            onClick={(d: { payload?: (typeof chartData)[number] }) => {
+              const p = d?.payload;
+              if (p?.sector) onSelect?.(p.sector, p.type);
+            }}
             isAnimationActive={false}
           >
             {chartData.map((d, i) => (

@@ -112,7 +112,9 @@ export default function WarRoom() {
           >
             <SectorBubble
               data={sectorData}
-              onSelect={(sector) => navigate(`/screener?sector=${encodeURIComponent(sector)}`)}
+              onSelect={(sector, type) =>
+                navigate(`/screener?sector=${encodeURIComponent(sector)}&type=${type}`)
+              }
             />
           </Card>
         </div>
