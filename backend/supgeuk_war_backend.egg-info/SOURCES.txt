@@ -6,6 +6,7 @@ app/scheduler.py
 app/adapters/fdr.py
 app/adapters/index.py
 app/adapters/krx.py
+app/adapters/krx_openapi.py
 app/models/base.py
 app/models/market.py
 app/routers/archive.py
