@@ -39,6 +39,15 @@ const EMPTY_DOMINANCE: MarketDominance = {
 
 const EMPTY_PICKS: Record<SignalType, TopPick[]> = { A: [], B: [], C: [], D: [] };
 
+// 시그널 카드용 아이코노그라픽 스파크라인 — 시계열 데이터가 아닌 Type 특성을 시각화한 정적 패턴
+//   A 위험: 우하향 / B 강세: 우상향 / C 충돌: 진폭 / D 방어: 횡보
+const TYPE_PATTERN: Record<SignalType, number[]> = {
+  A: [22, 21, 20, 19, 18, 16, 15, 14, 13, 12, 12],
+  B: [10, 12, 13, 15, 18, 21, 24, 26, 27, 28, 28],
+  C: [38, 41, 39, 43, 40, 44, 41, 45, 42, 46, 45],
+  D: [33, 31, 32, 30, 31, 30, 32, 31, 30, 32, 31],
+};
+
 export default function WarRoom() {
   const navigate = useNavigate();
 
@@ -166,7 +175,7 @@ export default function WarRoom() {
               sub={TYPE_META[t].sub}
               color={TYPE_META[t].color}
               count={signals ? (t === 'A' ? signals.count_a : t === 'B' ? signals.count_b : t === 'C' ? signals.count_c : signals.count_d) : null}
-              spark={[]}
+              spark={TYPE_PATTERN[t]}
               onClick={() => navigate(`/screener?type=${t}`)}
             />
           ))}
@@ -195,9 +204,12 @@ function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
         : 'text-num-flat'
     : 'text-ink-secondary';
 
-  // 막대바 채움: SFI 30%를 만점으로 정규화 (실무 상 매우 강한 신호 = 약 30%)
-  const BAR_FULL_AT = 30;
-  const barRatio = Math.max(0, Math.min(1, intensity / BAR_FULL_AT));
+  // 막대바 채움: 화면에 표시된 수치와 일치시킴
+  //   - change_pct 있을 때: |등락률|이 ±5%일 때 만점
+  //   - 없을 때(fallback): SFI 30%일 때 만점
+  const barRatio = hasChange
+    ? Math.max(0, Math.min(1, Math.abs(change!) / 5))
+    : Math.max(0, Math.min(1, intensity / 30));
 
   return (
     <li>
@@ -212,7 +224,11 @@ function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
         </span>
         <span
           className="block h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-surface-2"
-          title={`수급 강도 ${intensity.toFixed(2)}% (SFI 절댓값 최대치)`}
+          title={
+            hasChange
+              ? `등락률 ${fmtPct(change!)} · 수급 강도 ${intensity.toFixed(2)}%`
+              : `수급 강도 ${intensity.toFixed(2)}% (SFI 절댓값 최대치)`
+          }
         >
           <span
             className="block h-full rounded-full transition-all"
@@ -291,17 +307,30 @@ function EmptyBox({ label, height = 160 }: { label: string; height?: number }) {
   );
 }
 
-// `**굵게**` 마크다운 마커를 인식해 <strong>으로 렌더링 (XSS 안전)
+// `**굵게**` 마크다운 마커 → <strong>, ⚠ 앞에 자동 줄바꿈
 function renderBrief(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
+  const result: React.ReactNode[] = [];
+  parts.forEach((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <strong key={i} className="font-semibold text-ink-primary">
+      result.push(
+        <strong key={`b-${i}`} className="font-semibold text-ink-primary">
           {part.slice(2, -2)}
         </strong>
       );
+      return;
     }
-    return <span key={i}>{part}</span>;
+    // 평문 안에 ⚠ 가 있으면 그 앞에서 줄바꿈
+    const subparts = part.split(/(\s*⚠\s*)/g);
+    subparts.forEach((sub, j) => {
+      if (!sub) return;
+      if (/\s*⚠\s*/.test(sub) && sub.includes('⚠')) {
+        result.push(<br key={`br-${i}-${j}`} />);
+        result.push(<span key={`w-${i}-${j}`}>⚠ </span>);
+      } else {
+        result.push(<span key={`t-${i}-${j}`}>{sub}</span>);
+      }
+    });
   });
+  return result;
 }
