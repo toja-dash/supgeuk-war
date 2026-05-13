@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getOrMock } from '../../api/withMock';
-import { mockMarketBrief } from '../../mocks';
+import { apiClient } from '../../api/client';
 import type { MarketBrief } from '../../types/api';
 import { fmtPct } from '../../lib/format';
 
@@ -10,6 +9,10 @@ const STATUS_LABEL: Record<MarketBrief['status_badge'], { text: string; cls: str
   pending: { text: '잠정 (15:30)', cls: 'bg-status-pending/20 text-status-pending' },
   confirmed: { text: '확정 (18:00)', cls: 'bg-status-confirmed/20 text-status-confirmed' },
 };
+
+const nf = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtNumOrDash = (v: number | null | undefined) =>
+  v === null || v === undefined ? '-' : nf.format(v);
 
 export function Header() {
   const location = useLocation();
@@ -22,12 +25,10 @@ export function Header() {
 
   const { data } = useQuery({
     queryKey: ['market', 'brief'],
-    queryFn: () => getOrMock<MarketBrief>('/market/brief', mockMarketBrief),
+    queryFn: () => apiClient.get<MarketBrief>('/market/brief'),
   });
 
-  const brief = data ?? mockMarketBrief;
-  const status = STATUS_LABEL[brief.status_badge];
-  const nf = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const status = data ? STATUS_LABEL[data.status_badge] : null;
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-6 border-b border-border-subtle bg-surface px-6">
@@ -60,20 +61,24 @@ export function Header() {
       <div className="flex-grow" />
 
       <div className="flex items-center gap-5 text-sm">
-        <span className={`rounded-md px-2.5 py-1 text-2xs font-semibold uppercase tracking-wide ${status.cls}`}>
-          {status.text}
-        </span>
+        {status && (
+          <span
+            className={`rounded-md px-2.5 py-1 text-2xs font-semibold uppercase tracking-wide ${status.cls}`}
+          >
+            {status.text}
+          </span>
+        )}
         <Quote
           label="KOSPI"
-          value={nf.format(brief.kospi_close)}
-          change={brief.kospi_change_pct}
+          value={fmtNumOrDash(data?.kospi_close)}
+          change={data?.kospi_change_pct}
         />
         <Quote
           label="KOSDAQ"
-          value={nf.format(brief.kosdaq_close)}
-          change={brief.kosdaq_change_pct}
+          value={fmtNumOrDash(data?.kosdaq_close)}
+          change={data?.kosdaq_change_pct}
         />
-        <Quote label="환율" value={nf.format(brief.usdkrw_close)} />
+        <Quote label="환율" value={fmtNumOrDash(data?.usdkrw_close)} />
       </div>
     </header>
   );
