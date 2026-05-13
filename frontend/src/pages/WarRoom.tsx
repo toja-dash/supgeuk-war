@@ -103,9 +103,9 @@ export default function WarRoom() {
       </Card>
 
       {/* Row 2 — 3-column grid */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 items-start gap-6">
         <div className="col-span-12 xl:col-span-3">
-          <Card title="📊 시장 3파전 주도력" className="h-full">
+          <Card title="📊 시장 3파전 주도력">
             <DivergingBar
               rows={[
                 { label: '코스피', indi: dom.kospi.indi, inst: dom.kospi.inst, frgn: dom.kospi.frgn },
@@ -119,7 +119,6 @@ export default function WarRoom() {
           <Card
             title="🎯 전술 레이더 맵"
             subtitle="버블 크기 = 거래대금 · 색 = 수급 주도력"
-            className="h-full"
           >
             <SectorBubble
               data={sectorData}
