@@ -29,22 +29,26 @@ export function DivergingBar({ rows }: { rows: Row[] }) {
     { market: r.label, subject: '기관', value: r.inst, fill: COLORS.inst },
     { market: r.label, subject: '외국인', value: r.frgn, fill: COLORS.frgn },
   ]);
+  const maxAbs = Math.max(1, ...data.map((d) => Math.abs(d.value)));
+  const domainMax = Math.ceil(maxAbs * 1.05);
+  const domain: [number, number] = [-domainMax, domainMax];
+  const ticks = [-domainMax, 0, domainMax];
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-grow">
-        <ResponsiveContainer width="100%" height={280}>
+    <div className="flex h-[300px] flex-col">
+      <div className="min-h-0 flex-1">
+        <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             layout="vertical"
-            margin={{ top: 8, right: 16, bottom: 8, left: 8 }}
-            barCategoryGap={8}
+            margin={{ top: 6, right: 12, bottom: 0, left: 4 }}
+            barCategoryGap={6}
           >
             <CartesianGrid stroke="#1F2937" strokeDasharray="3 3" horizontal={false} />
             <XAxis
               type="number"
-              domain={[-100, 100]}
-              ticks={[-100, -50, 0, 50, 100]}
+              domain={domain}
+              ticks={ticks}
               tick={{ fill: '#9CA3AF', fontSize: 11 }}
               axisLine={{ stroke: '#374151' }}
               tickLine={{ stroke: '#374151' }}

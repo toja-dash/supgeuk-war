@@ -43,10 +43,10 @@ export function SectorBubble({ data, onSelect }: Props) {
   }));
 
   return (
-    <div className="relative h-[340px]">
+    <div className="relative h-[300px]">
       <QuadrantLabels />
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 24, right: 24, bottom: 32, left: 8 }}>
+        <ScatterChart margin={{ top: 20, right: 24, bottom: 18, left: 8 }}>
           <CartesianGrid stroke="#1F2937" strokeDasharray="3 3" />
           <XAxis
             type="number"
@@ -59,7 +59,7 @@ export function SectorBubble({ data, onSelect }: Props) {
             label={{
               value: '외국인 SFI',
               position: 'insideBottom',
-              offset: -8,
+              offset: -4,
               fill: '#9CA3AF',
               fontSize: 11,
             }}
