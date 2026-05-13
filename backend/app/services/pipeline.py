@@ -211,3 +211,94 @@ async def run_eod_analysis(target_date: date):
     await set_cache(f"cache:market_brief:{date_str}", brief_cache)
     
     logger.info(f"EOD analysis completed for {target_date}")
+
+
+async def run_eod_analysis_range(start_date: date, end_date: date):
+    logger.info("Starting EOD analysis from %s to %s", start_date, end_date)
+
+    async with AsyncSessionLocal() as session:
+        query = (
+            select(MarketRawData, StockMaster.sector, StockMaster.market)
+            .outerjoin(StockMaster, MarketRawData.ticker == StockMaster.ticker)
+            .where(MarketRawData.date <= end_date)
+            .order_by(MarketRawData.date.asc())
+        )
+        result = await session.execute(query)
+
+        rows = []
+        for row in result:
+            raw = row[0].__dict__
+            raw["sector"] = row[1]
+            raw["market"] = row[2]
+            rows.append(raw)
+
+        if not rows:
+            logger.warning("No raw data found to run range analysis.")
+            return
+
+    df_history = pd.DataFrame(rows)
+    df_history = df_history.drop(columns=["_sa_instance_state"], errors="ignore")
+    df_ind = supply_analysis.process_daily_indicators(df_history)
+    df_range = df_ind[(df_ind["date"] >= start_date) & (df_ind["date"] <= end_date)].copy()
+
+    if df_range.empty:
+        logger.warning("No data from %s to %s after indicator calculation.", start_date, end_date)
+        return
+
+    df_range = screening.apply_screening(df_range)
+    df_range = scoring.apply_scoring(df_range)
+
+    valid_cols = [c.name for c in MarketIndicators.__table__.columns]
+    all_records = clean_nan(df_range.to_dict(orient="records"))
+    insert_data = [{k: v for k, v in r.items() if k in valid_cols} for r in all_records]
+
+    summary_records = []
+    for target_date, df_day in df_range.groupby("date"):
+        brief_data = screening.generate_market_brief(df_day)
+        brief_data["date"] = target_date
+        summary_records.append(brief_data)
+
+    async with AsyncSessionLocal() as session:
+        for batch in chunks(insert_data, 750):
+            stmt = insert(MarketIndicators).values(batch)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["date", "ticker"],
+                set_={k: getattr(stmt.excluded, k) for k in batch[0].keys() if k not in ["date", "ticker"]},
+            )
+            await session.execute(stmt)
+
+        for batch in chunks(summary_records, 250):
+            stmt_sum = insert(MarketSummary).values(batch)
+            stmt_sum = stmt_sum.on_conflict_do_update(
+                index_elements=["date"],
+                set_={k: getattr(stmt_sum.excluded, k) for k in batch[0].keys() if k != "date"},
+            )
+            await session.execute(stmt_sum)
+
+        await session.commit()
+
+    for target_date in sorted(df_range["date"].unique()):
+        date_str = target_date.strftime("%Y-%m-%d")
+        day_records = [r for r in all_records if r.get("date") == target_date]
+        cache_data = []
+        for r in day_records:
+            r_series = pd.Series(r)
+            insights = scoring.generate_insights(r_series)
+            r_cache = r.copy()
+            r_cache.update(insights)
+            if "date" in r_cache and isinstance(r_cache["date"], (date, datetime)):
+                r_cache["date"] = r_cache["date"].strftime("%Y-%m-%d")
+            cache_data.append(r_cache)
+
+        await set_cache(f"cache:indicators:{date_str}", cache_data)
+
+    for brief_data in summary_records:
+        brief_cache = dict(brief_data)
+        if isinstance(brief_cache["date"], (date, datetime)):
+            date_str = brief_cache["date"].strftime("%Y-%m-%d")
+            brief_cache["date"] = date_str
+        else:
+            date_str = str(brief_cache["date"])
+        await set_cache(f"cache:market_brief:{date_str}", brief_cache)
+
+    logger.info("EOD analysis range completed from %s to %s", start_date, end_date)
