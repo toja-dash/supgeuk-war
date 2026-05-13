@@ -49,24 +49,15 @@ export default function Screener() {
     ],
     queryFn: () =>
       apiClient.get<ScreenerResponse>(
-        `/screener?type=${filters.type}&defense=${filters.defense}&sfi_inst_min=${filters.sfi_inst_min}&sfi_frgn_min=${filters.sfi_frgn_min}`,
+        `/screener?type=${filters.type}&defense=${filters.defense}&sfi_inst_min=${filters.sfi_inst_min}&sfi_frgn_min=${filters.sfi_frgn_min}&size=1000`,
       ),
   });
 
   const items = data?.items ?? [];
-
-  const filtered = useMemo(() => {
-    return items.filter((it) => {
-      if (filters.type !== 'ALL' && it.type !== filters.type) return false;
-      if (filters.defense !== 'ALL' && it.defense_status !== filters.defense) return false;
-      if (it.sfi_inst < filters.sfi_inst_min) return false;
-      if (it.sfi_frgn < filters.sfi_frgn_min) return false;
-      return true;
-    });
-  }, [items, filters]);
+  const total = data?.total ?? 0;
 
   const sorted = useMemo(() => {
-    const out = [...filtered];
+    const out = [...items];
     out.sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
@@ -78,7 +69,7 @@ export default function Screener() {
         : String(bv).localeCompare(String(av));
     });
     return out;
-  }, [filtered, sortKey, sortDir]);
+  }, [items, sortKey, sortDir]);
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -131,8 +122,8 @@ export default function Screener() {
       </Card>
 
       <Card
-        title={`📋 조건 일치 종목 (${sorted.length}개)`}
-        subtitle="행 클릭 시 Deep Dive로 이동"
+        title={`📋 조건 일치 종목 (${total}개)`}
+        subtitle={`상위 ${sorted.length}개 표시 · 행 클릭 시 Deep Dive로 이동`}
         bodyClassName="p-0"
       >
         <div className="overflow-x-auto">
