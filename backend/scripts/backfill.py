@@ -1,6 +1,6 @@
 import asyncio
+import argparse
 from datetime import date, timedelta
-from pykrx import stock
 
 async def backfill(start_date: date, end_date: date):
     print(f"Starting backfill from {start_date} to {end_date}")
@@ -20,6 +20,10 @@ async def backfill(start_date: date, end_date: date):
     print("Backfill complete.")
 
 if __name__ == "__main__":
-    start = date.today() - timedelta(days=2)
-    end = date.today()
-    asyncio.run(backfill(start, end))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start", type=date.fromisoformat)
+    parser.add_argument("--end", type=date.fromisoformat, default=date.today())
+    args = parser.parse_args()
+
+    start = args.start or (args.end - timedelta(days=365 * 3 + 31))
+    asyncio.run(backfill(start, args.end))

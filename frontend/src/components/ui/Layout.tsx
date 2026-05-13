@@ -1,7 +1,7 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { Header } from './Header';
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />

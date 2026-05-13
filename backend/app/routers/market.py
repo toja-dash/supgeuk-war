@@ -4,7 +4,7 @@ from sqlalchemy import select, func, desc
 from typing import Optional
 from datetime import date
 from app.db import get_db
-from app.models.market import MarketSummary, MarketIndicators, StockMaster, MarketRawData
+from app.models.market import MarketSummary, MarketIndicators, StockMaster, MarketRawData, MarketIndex
 from app.utils.trading_day import latest_trading_day
 from datetime import datetime
 
@@ -18,6 +18,8 @@ async def get_brief(date: Optional[date] = Query(None), db: AsyncSession = Depen
     t_date = get_target_date(date)
     result = await db.execute(select(MarketSummary).where(MarketSummary.date == t_date))
     summary = result.scalars().first()
+    index_result = await db.execute(select(MarketIndex).where(MarketIndex.date == t_date))
+    market_index = index_result.scalars().first()
     
     if not summary:
         data = {
@@ -29,13 +31,14 @@ async def get_brief(date: Optional[date] = Query(None), db: AsyncSession = Depen
             "status_badge": "live"
         }
     else:
-        # MarketIndex is not fully fetched in pipeline yet, so we mock index values for now, but use real brief text
         data = {
             "date": t_date.strftime("%Y-%m-%d"),
             "market_brief_text": summary.market_brief_text,
-            "kospi_close": 2654.21, "kospi_change_pct": 0.5,
-            "kosdaq_close": 842.11, "kosdaq_change_pct": -0.2,
-            "usdkrw_close": 1350.20,
+            "kospi_close": market_index.kospi_close if market_index else 0,
+            "kospi_change_pct": market_index.kospi_change_pct if market_index else 0,
+            "kosdaq_close": market_index.kosdaq_close if market_index else 0,
+            "kosdaq_change_pct": market_index.kosdaq_change_pct if market_index else 0,
+            "usdkrw_close": market_index.usdkrw_close if market_index else 0,
             "status_badge": "confirmed"
         }
     return {"data": data, "status": "ok", "message": None}

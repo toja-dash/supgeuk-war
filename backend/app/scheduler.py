@@ -30,6 +30,9 @@ async def job_eod_confirmed():
     await pipeline.run_eod_analysis(t_date)
 
 def setup_scheduler():
+    if scheduler.running:
+        return
+
     # master_sync: 매일 06:00
     scheduler.add_job(job_master_sync, CronTrigger(hour=6, minute=0), id="master_sync")
     

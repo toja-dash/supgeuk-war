@@ -58,8 +58,8 @@ async def get_stock_info(ticker: str, date: Optional[date] = Query(None), db: As
         "sfi_inst": round(float(ind.sfi_inst or 0), 2),
         "sfi_frgn": round(float(ind.sfi_frgn or 0), 2),
         "defense_status": ind.defense_status,
-        "avg_cost_20d_inst": raw.avg_cost_20d_inst if raw else 0,
-        "avg_cost_20d_frgn": raw.avg_cost_20d_frgn if raw else 0,
+        "avg_cost_20d_inst": ind.avg_cost_20d_inst or 0,
+        "avg_cost_20d_frgn": ind.avg_cost_20d_frgn or 0,
         "deep_dive_headline": headline,
         "deep_dive_line1": line1,
         "deep_dive_line2": line2

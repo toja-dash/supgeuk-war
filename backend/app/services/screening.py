@@ -24,6 +24,8 @@ def classify_type(row: pd.Series) -> str:
 
 def apply_screening(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
+    df['sfi_inst'] = pd.to_numeric(df['sfi_inst'], errors='coerce')
+    df['sfi_frgn'] = pd.to_numeric(df['sfi_frgn'], errors='coerce')
     
     # calc type
     df['type'] = df.apply(classify_type, axis=1)

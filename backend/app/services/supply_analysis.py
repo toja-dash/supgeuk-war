@@ -11,17 +11,17 @@ def calc_dominance(df: pd.DataFrame) -> pd.DataFrame:
     
     # 0 division handling
     valid = denom > 0
-    df['dominance_indi'] = np.where(valid, df['net_buy_indi'] / denom, None)
-    df['dominance_inst'] = np.where(valid, df['net_buy_inst'] / denom, None)
-    df['dominance_frgn'] = np.where(valid, df['net_buy_frgn'] / denom, None)
+    df['dominance_indi'] = np.where(valid, df['net_buy_indi'] / denom, np.nan)
+    df['dominance_inst'] = np.where(valid, df['net_buy_inst'] / denom, np.nan)
+    df['dominance_frgn'] = np.where(valid, df['net_buy_frgn'] / denom, np.nan)
     
     return df
 
 def calc_sfi(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     valid = df['trade_value'] > 0
-    df['sfi_inst'] = np.where(valid, (df['net_buy_inst'] / df['trade_value']) * 100, None)
-    df['sfi_frgn'] = np.where(valid, (df['net_buy_frgn'] / df['trade_value']) * 100, None)
+    df['sfi_inst'] = np.where(valid, (df['net_buy_inst'] / df['trade_value']) * 100, np.nan)
+    df['sfi_frgn'] = np.where(valid, (df['net_buy_frgn'] / df['trade_value']) * 100, np.nan)
     return df
 
 def calc_quadrant(df: pd.DataFrame) -> pd.DataFrame:
@@ -107,7 +107,7 @@ def process_daily_indicators(df_history: pd.DataFrame) -> pd.DataFrame:
             sum_val = df_history.groupby('ticker')[f'net_buy_{sub}'].transform(lambda x: rolling_sum(x, w))
             sum_qty = df_history.groupby('ticker')[f'net_qty_{sub}'].transform(lambda x: rolling_sum(x, w))
             valid = sum_qty > 0
-            df_history[f'avg_cost_{w}d_{sub}'] = np.where(valid, sum_val / sum_qty, None)
+            df_history[f'avg_cost_{w}d_{sub}'] = np.where(valid, sum_val / sum_qty, np.nan)
 
     # 4. defense status
     status_df = df_history.apply(calc_defense_status, axis=1)

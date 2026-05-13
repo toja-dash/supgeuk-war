@@ -1,9 +1,8 @@
-import React from 'react';
 import { ChangePct } from './Badge';
 
 interface StatCardProps {
   label: string;
-  value: string;
+  value: string | number;
   delta?: number;
   deltaText?: string;
   borderColor?: string;

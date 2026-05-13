@@ -1,14 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import market, screener, stock, archive
-from app.scheduler import setup_scheduler
+from app.scheduler import scheduler, setup_scheduler
 import contextlib
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    # setup_scheduler()
+    setup_scheduler()
     yield
-    # scheduler.shutdown()
+    scheduler.shutdown()
 
 app = FastAPI(title="SUPGEUK WAR API", lifespan=lifespan)
 

@@ -12,6 +12,10 @@ from app.cache import set_cache
 
 logger = logging.getLogger(__name__)
 
+def chunks(items, size: int):
+    for start in range(0, len(items), size):
+        yield items[start:start + size]
+
 def clean_nan(records):
     import numpy as np
     cleaned = []
@@ -39,8 +43,8 @@ async def run_master_sync():
     records = clean_nan(df.to_dict(orient="records"))
     
     async with AsyncSessionLocal() as session:
-        if records:
-            stmt = insert(StockMaster).values(records)
+        for batch in chunks(records, 1000):
+            stmt = insert(StockMaster).values(batch)
             stmt = stmt.on_conflict_do_update(
                 index_elements=['ticker'],
                 set_={
@@ -52,7 +56,7 @@ async def run_master_sync():
                 }
             )
             await session.execute(stmt)
-            await session.commit()
+        await session.commit()
     logger.info("master_sync completed")
 
 async def fetch_and_upsert_raw_data(target_date: date):
@@ -76,8 +80,8 @@ async def fetch_and_upsert_raw_data(target_date: date):
     records = clean_nan(df.to_dict(orient="records"))
     
     async with AsyncSessionLocal() as session:
-        if records:
-            stmt = insert(MarketRawData).values(records)
+        for batch in chunks(records, 1000):
+            stmt = insert(MarketRawData).values(batch)
             stmt = stmt.on_conflict_do_update(
                 index_elements=['date', 'ticker'],
                 set_={
@@ -97,7 +101,11 @@ async def fetch_and_upsert_raw_data(target_date: date):
             await session.execute(stmt)
         
         # Also index data
-        idx_data = index.fetch_index_daily(target_date)
+        try:
+            idx_data = index.fetch_index_daily(target_date)
+        except Exception as exc:
+            logger.warning("Failed to fetch index data for %s: %s", target_date, exc)
+            idx_data = None
         if idx_data:
             stmt_idx = insert(MarketIndex).values(idx_data)
             stmt_idx = stmt_idx.on_conflict_do_update(
@@ -164,12 +172,12 @@ async def run_eod_analysis(target_date: date):
     
     async with AsyncSessionLocal() as session:
         # Upsert Indicators
-        if ind_records:
-            insert_data = [{k: v for k, v in r.items() if k in valid_cols} for r in ind_records]
-            stmt = insert(MarketIndicators).values(insert_data)
+        insert_data = [{k: v for k, v in r.items() if k in valid_cols} for r in ind_records]
+        for batch in chunks(insert_data, 750):
+            stmt = insert(MarketIndicators).values(batch)
             stmt = stmt.on_conflict_do_update(
                 index_elements=['date', 'ticker'],
-                set_={k: getattr(stmt.excluded, k) for k in insert_data[0].keys() if k not in ['date', 'ticker']}
+                set_={k: getattr(stmt.excluded, k) for k in batch[0].keys() if k not in ['date', 'ticker']}
             )
             await session.execute(stmt)
             

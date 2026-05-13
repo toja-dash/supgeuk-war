@@ -12,6 +12,7 @@ Requires-Dist: redis
 Requires-Dist: apscheduler
 Requires-Dist: pandas
 Requires-Dist: numpy
-Requires-Dist: pykrx
+Requires-Dist: pykrx==1.0.51
 Requires-Dist: finance-datareader
 Requires-Dist: pydantic-settings
+Requires-Dist: setuptools<81

@@ -1,23 +1,20 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
 
-export const apiClient = axios.create({
+const axiosClient = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-apiClient.interceptors.response.use(
-  (response) => {
-    // Envelope unwrap
+export const apiClient = {
+  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await axiosClient.get(url, config);
     if (response.data && response.data.status === 'ok') {
-      return response.data.data;
+      return response.data.data as T;
     }
-    return response.data;
+    return response.data as T;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+};
