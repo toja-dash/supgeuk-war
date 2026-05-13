@@ -44,7 +44,20 @@ def generate_insights(row: pd.Series) -> dict:
     def_stat = row.get('defense_status')
     i_cost = row.get('avg_cost_20d_inst')
     f_cost = row.get('avg_cost_20d_frgn')
+    data_status = row.get('data_status', 'STABLE')
+    data_count = row.get('data_count', 20)
     
+    if data_status == 'PENDING':
+        return {
+            "signal_card_text": "데이터 수집 중",
+            "deep_dive_headline": "⚪ 데이터 수집 중입니다.",
+            "deep_dive_line1": "상장 초기 종목으로 정확한 분석을 위해 데이터를 수집하고 있습니다.",
+            "deep_dive_line2": "상장 3일차부터 분석 정보가 제공됩니다.",
+            "disclaimer_required": False,
+            "data_status": "PENDING",
+            "data_count": data_count
+        }
+
     signal_card_text = ""
     if t == 'A': signal_card_text = "기관·외인 동시 매도 + 평단가 붕괴"
     elif t == 'B': signal_card_text = "기관·외인 동시 강세 매수"
@@ -79,11 +92,16 @@ def generate_insights(row: pd.Series) -> dict:
         line2 = f"현재가 {close:,.0f}원이 기관 평단가({i_cost:,.0f}원) 대비 -5% 이상 이탈, 손절 물량 출회 위험 구간입니다."
     else:
         line2 = "평단가 산출에 필요한 누적 매수 데이터가 부족합니다."
+    
+    if data_status == 'ESTIMATED':
+        line2 += f" (최근 {data_count}일 누적 데이터 기준)"
         
     return {
         "signal_card_text": signal_card_text,
         "deep_dive_headline": headline,
         "deep_dive_line1": line1,
         "deep_dive_line2": line2,
-        "disclaimer_required": True
+        "disclaimer_required": True,
+        "data_status": data_status,
+        "data_count": data_count
     }

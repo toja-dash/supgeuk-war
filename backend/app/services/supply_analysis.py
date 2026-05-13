@@ -121,10 +121,33 @@ def process_daily_indicators(df_history: pd.DataFrame) -> pd.DataFrame:
         for sub in ['inst', 'frgn']:
             sum_val = df_history.groupby('ticker')[f'net_buy_{sub}'].transform(lambda x: rolling_sum(x, w))
             sum_qty = df_history.groupby('ticker')[f'net_qty_{sub}'].transform(lambda x: rolling_sum(x, w))
+            # Rule: Only calculate if cumulative quantity is strictly positive
             valid = sum_qty > 0
             df_history[f'avg_cost_{w}d_{sub}'] = np.where(valid, sum_val / sum_qty, np.nan)
 
-    # 4. defense status
+    # 4. Data availability status (PENDING: 0-2d, ESTIMATED: 3-19d, STABLE: 20d+)
+    df_history['data_count'] = df_history.groupby('ticker').cumcount() + 1
+    
+    conds = [
+        (df_history['data_count'] <= 2),
+        (df_history['data_count'] < 20),
+        (df_history['data_count'] >= 20)
+    ]
+    choices = ['PENDING', 'ESTIMATED', 'STABLE']
+    df_history['data_status'] = np.select(conds, choices, default='PENDING')
+
+    # Mask indicators if status is PENDING
+    pending_mask = df_history['data_status'] == 'PENDING'
+    indicator_cols = [
+        'ma_5', 'ma_20', 'ma_60', 'ma_120', 
+        'dominance_indi', 'dominance_inst', 'dominance_frgn',
+        'sfi_inst', 'sfi_frgn', 'quadrant', 'conflict_intensity'
+    ]
+    for col in indicator_cols:
+        if col in df_history.columns:
+            df_history.loc[pending_mask, col] = np.nan
+
+    # 5. defense status
     status_df = df_history.apply(calc_defense_status, axis=1)
     df_history = pd.concat([df_history, status_df], axis=1)
 

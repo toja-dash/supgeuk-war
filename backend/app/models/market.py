@@ -65,6 +65,8 @@ class MarketIndicators(Base):
     type_intensity = Column(Float)
     priority_score = Column(Float)
     weighted_priority = Column(Float)
+    data_count = Column(Integer)
+    data_status = Column(String(16)) # PENDING | ESTIMATED | STABLE
 
     __table_args__ = (
         Index("ix_market_indicators_date_type", "date", "type"),
