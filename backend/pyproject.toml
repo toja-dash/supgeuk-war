@@ -13,7 +13,7 @@ dependencies = [
     "apscheduler",
     "pandas",
     "numpy",
-    "pykrx==1.0.51",
+    "pykrx==1.2.8",
     "finance-datareader",
     "pydantic-settings",
     "setuptools<81"
