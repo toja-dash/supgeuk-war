@@ -151,15 +151,30 @@ export function SectorBubble({ data, onSelect }: Props) {
 }
 
 function QuadrantLabels() {
-  // 각 사분면 내부 깊숙이 배치 + 배경 약간 처리 — 0축·그리드 라인과 겹쳐 보이지 않게
+  // 각 사분면 상단(Q1/Q2) 또는 하단(Q3/Q4) 중앙에 배치
+  // - 좌측 절반 중앙: 컨테이너의 ~30% 위치 (YAxis 폭 ~60px 감안)
+  // - 우측 절반 중앙: 컨테이너의 ~75% 위치
+  // - 수직: 플롯 영역 상/하단 안쪽으로 8~14%
   const base =
-    'absolute pointer-events-none rounded-sm bg-surface/70 px-1.5 py-0.5 text-[10px] leading-none text-ink-muted/80 backdrop-blur-[1px]';
+    'absolute pointer-events-none whitespace-nowrap rounded-sm bg-surface/70 px-1.5 py-0.5 text-[10px] leading-none text-ink-muted/80 backdrop-blur-[1px]';
   return (
     <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10">
-      <div className={`${base} right-6 top-6`}>1사분면 · 쌍끌이 매수</div>
-      <div className={`${base} left-24 top-6`}>2사분면 · 기관 방어</div>
-      <div className={`${base} left-24 bottom-12`}>3사분면 · 쌍끌이 매도</div>
-      <div className={`${base} right-6 bottom-12`}>4사분면 · 외인 주도</div>
+      {/* 2사분면 (좌상) — 상단 중앙 */}
+      <div className={base} style={{ top: '10%', left: '30%', transform: 'translateX(-50%)' }}>
+        2사분면 · 기관 방어
+      </div>
+      {/* 1사분면 (우상) — 상단 중앙 */}
+      <div className={base} style={{ top: '10%', left: '75%', transform: 'translateX(-50%)' }}>
+        1사분면 · 쌍끌이 매수
+      </div>
+      {/* 3사분면 (좌하) — 하단 중앙. X축 라벨 영역 피해 안쪽으로 */}
+      <div className={base} style={{ bottom: '22%', left: '30%', transform: 'translateX(-50%)' }}>
+        3사분면 · 쌍끌이 매도
+      </div>
+      {/* 4사분면 (우하) — 하단 중앙 */}
+      <div className={base} style={{ bottom: '22%', left: '75%', transform: 'translateX(-50%)' }}>
+        4사분면 · 외인 주도
+      </div>
     </div>
   );
 }
