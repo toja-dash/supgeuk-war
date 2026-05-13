@@ -26,7 +26,7 @@ import type {
 import { fmtPct } from '../lib/format';
 
 const TYPE_META: Record<SignalType, { label: string; sub: string; color: string }> = {
-  A: { label: 'Type A', sub: '쌍끌이 설거지', color: '#EF4444' },
+  A: { label: 'Type A', sub: '쌍끌이 설거지 · 방어선 이탈', color: '#EF4444' },
   B: { label: 'Type B', sub: '쌍끌이 매수', color: '#10B981' },
   C: { label: 'Type C', sub: '개미털기', color: '#06B6D4' },
   D: { label: 'Type D', sub: '기관 방어', color: '#F59E0B' },

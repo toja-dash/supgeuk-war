@@ -11,19 +11,27 @@ interface Props {
  * 각 구간을 안전(녹)·경계(노)·위험(빨) 그라데이션으로 표현.
  */
 export function DefenseLadder({ currentPrice, instAvg, foreignAvg }: Props) {
-  if (instAvg == null || foreignAvg == null) {
+  // 0/음수/null 모두 '데이터 없음'으로 취급 (순매수자가 아닐 때 backend가 null 반환)
+  const inst = instAvg && instAvg > 0 ? instAvg : null;
+  const frgn = foreignAvg && foreignAvg > 0 ? foreignAvg : null;
+
+  if (inst == null && frgn == null) {
     return (
       <div className="rounded-md border border-border-subtle bg-surface-2/40 p-4 text-2xs text-ink-muted">
         평단 데이터가 부족하여 방어선 시각화를 표시할 수 없습니다.
+        <div className="mt-1 text-ink-muted/80">
+          (기관·외인 모두 최근 20일간 순매도 또는 데이터 부족)
+        </div>
       </div>
     );
   }
 
   const stack = [
     { label: '현재가', value: currentPrice, color: '#F9FAFB', kind: 'current' as const },
-    { label: '외인 평단', value: foreignAvg, color: '#A855F7', kind: 'frgn' as const },
-    { label: '기관 평단', value: instAvg, color: '#06B6D4', kind: 'inst' as const },
+    frgn != null ? { label: '외인 평단', value: frgn, color: '#A855F7', kind: 'frgn' as const } : null,
+    inst != null ? { label: '기관 평단', value: inst, color: '#06B6D4', kind: 'inst' as const } : null,
   ]
+    .filter((x): x is NonNullable<typeof x> => x != null)
     .slice()
     .sort((a, b) => b.value - a.value);
 
@@ -33,14 +41,17 @@ export function DefenseLadder({ currentPrice, instAvg, foreignAvg }: Props) {
 
   // 현재가 위치에 따른 방어 상태
   const idxCurrent = stack.findIndex((s) => s.kind === 'current');
+  const lastIdx = stack.length - 1;
   let zone: { label: string; color: string; bg: string };
   if (idxCurrent === 0) {
     zone = { label: '안전 구역', color: '#22C55E', bg: 'rgba(34,197,94,0.18)' };
-  } else if (idxCurrent === 1) {
-    zone = { label: '외인 방어선 도달', color: '#EAB308', bg: 'rgba(234,179,8,0.18)' };
-  } else {
+  } else if (idxCurrent === lastIdx) {
     zone = { label: '방어선 붕괴 위험', color: '#DC2626', bg: 'rgba(220,38,38,0.18)' };
+  } else {
+    zone = { label: '평단 방어선 도달', color: '#EAB308', bg: 'rgba(234,179,8,0.18)' };
   }
+
+  const pct = (cost: number) => (((currentPrice - cost) / cost) * 100).toFixed(2);
 
   return (
     <div className="flex gap-4">
@@ -82,32 +93,40 @@ export function DefenseLadder({ currentPrice, instAvg, foreignAvg }: Props) {
         <ul className="flex flex-col gap-1.5 text-2xs text-ink-secondary">
           <li>
             현재가 vs 외인 평단:{' '}
-            <span
-              className={`font-numeric font-semibold ${
-                currentPrice >= foreignAvg ? 'text-num-up' : 'text-num-down'
-              }`}
-            >
-              {currentPrice >= foreignAvg ? '+' : ''}
-              {(((currentPrice - foreignAvg) / foreignAvg) * 100).toFixed(2)}%
-            </span>
+            {frgn != null ? (
+              <span
+                className={`font-numeric font-semibold ${
+                  currentPrice >= frgn ? 'text-num-up' : 'text-num-down'
+                }`}
+              >
+                {currentPrice >= frgn ? '+' : ''}{pct(frgn)}%
+              </span>
+            ) : (
+              <span className="font-numeric text-ink-muted">데이터 없음</span>
+            )}
           </li>
           <li>
             현재가 vs 기관 평단:{' '}
-            <span
-              className={`font-numeric font-semibold ${
-                currentPrice >= instAvg ? 'text-num-up' : 'text-num-down'
-              }`}
-            >
-              {currentPrice >= instAvg ? '+' : ''}
-              {(((currentPrice - instAvg) / instAvg) * 100).toFixed(2)}%
-            </span>
+            {inst != null ? (
+              <span
+                className={`font-numeric font-semibold ${
+                  currentPrice >= inst ? 'text-num-up' : 'text-num-down'
+                }`}
+              >
+                {currentPrice >= inst ? '+' : ''}{pct(inst)}%
+              </span>
+            ) : (
+              <span className="font-numeric text-ink-muted">데이터 없음</span>
+            )}
           </li>
-          <li>
-            평단 갭:{' '}
-            <span className="font-numeric text-ink-primary">
-              {fmtPrice(Math.abs(foreignAvg - instAvg))}
-            </span>
-          </li>
+          {inst != null && frgn != null && (
+            <li>
+              평단 갭:{' '}
+              <span className="font-numeric text-ink-primary">
+                {fmtPrice(Math.abs(frgn - inst))}
+              </span>
+            </li>
+          )}
         </ul>
       </div>
     </div>
