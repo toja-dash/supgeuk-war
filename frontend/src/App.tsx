@@ -4,6 +4,7 @@ import { Layout } from './components/ui/Layout';
 import WarRoom from './pages/WarRoom';
 import Screener from './pages/Screener';
 import DeepDive from './pages/DeepDive';
+import DeepDiveDefault from './pages/DeepDiveDefault';
 import Archive from './pages/Archive';
 
 const queryClient = new QueryClient({
@@ -23,6 +24,7 @@ function App() {
           <Routes>
             <Route path="/" element={<WarRoom />} />
             <Route path="/screener" element={<Screener />} />
+            <Route path="/deep-dive" element={<DeepDiveDefault />} />
             <Route path="/deep-dive/:ticker" element={<DeepDive />} />
             <Route path="/archive" element={<Archive />} />
             <Route path="*" element={<Navigate to="/" replace />} />

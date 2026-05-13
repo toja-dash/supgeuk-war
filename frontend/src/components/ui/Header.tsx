@@ -19,7 +19,7 @@ export function Header() {
   const tabs = [
     { name: 'War Room', path: '/' },
     { name: 'Screener', path: '/screener' },
-    { name: 'Deep Dive', path: '/deep-dive/005930' },
+    { name: 'Deep Dive', path: '/deep-dive' },
     { name: 'Archive', path: '/archive' },
   ];
 
