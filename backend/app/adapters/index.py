@@ -61,12 +61,25 @@ def _fetch_index_from_official_api(target_date: date) -> dict:
     }
 
 
+def _has_valid_index_values(data: dict) -> bool:
+    return bool(data.get("kospi_close", 0) > 0 and data.get("kosdaq_close", 0) > 0)
+
+
 def _fetch_usdkrw_from_fdr(target_date: date) -> float:
     date_str = target_date.strftime("%Y-%m-%d")
     df_usdkrw = fdr.DataReader("USD/KRW", date_str, date_str)
-    if not df_usdkrw.empty and "Close" in df_usdkrw.columns:
-        return float(df_usdkrw.iloc[0]["Close"])
-    return 0.0
+    if df_usdkrw.empty or "Close" not in df_usdkrw.columns:
+        return 0.0
+
+    valid = df_usdkrw["Close"].dropna()
+    if valid.empty:
+        return 0.0
+
+    target_rows = valid[valid.index.strftime("%Y-%m-%d") == date_str]
+    if not target_rows.empty:
+        return float(target_rows.iloc[-1])
+
+    return float(valid.iloc[-1])
 
 
 def _fetch_index_from_fdr(target_date: date) -> dict:
@@ -92,7 +105,10 @@ def _fetch_index_from_fdr(target_date: date) -> dict:
 
 def fetch_index_daily(target_date: date) -> dict:
     try:
-        return _fetch_index_from_official_api(target_date)
+        data = _fetch_index_from_official_api(target_date)
+        if _has_valid_index_values(data):
+            return data
+        print(f"Invalid KRX Open API index data for {target_date}: {data}")
     except Exception as exc:
         print(f"Failed to fetch KRX Open API index data for {target_date}: {exc}")
-        return _fetch_index_from_fdr(target_date)
+    return _fetch_index_from_fdr(target_date)
