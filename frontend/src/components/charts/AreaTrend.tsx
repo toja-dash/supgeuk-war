@@ -25,9 +25,11 @@ export function AreaTrend({
   foreignAvg,
   height = 380,
 }: Props) {
-  const data = candles.map((c) => ({ date: c.date, value: c.close }));
-  const lows = candles.map((c) => c.low);
-  const highs = candles.map((c) => c.high);
+  const data = candles
+    .map((c) => ({ date: c.date ?? c.time, value: c.close, low: c.low, high: c.high }))
+    .filter((c): c is typeof c & { date: string } => Boolean(c.date));
+  const lows = data.map((c) => c.low);
+  const highs = data.map((c) => c.high);
   const yMin = Math.min(...lows, instAvg ?? Infinity, foreignAvg ?? Infinity) * 0.995;
   const yMax = Math.max(...highs, instAvg ?? -Infinity, foreignAvg ?? -Infinity) * 1.005;
 

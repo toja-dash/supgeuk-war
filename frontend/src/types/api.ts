@@ -101,7 +101,8 @@ export interface StockInfo {
 }
 
 export interface Candle {
-  date: string;
+  date?: string;
+  time?: string;
   open: number;
   high: number;
   low: number;
