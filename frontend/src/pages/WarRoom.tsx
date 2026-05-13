@@ -7,14 +7,7 @@ import { Disclaimer } from '../components/ui/Disclaimer';
 import { DivergingBar } from '../components/charts/DivergingBar';
 import { SectorBubble } from '../components/charts/SectorBubble';
 import { Sparkline } from '../components/charts/Sparkline';
-import { getOrMock } from '../api/withMock';
-import {
-  mockDominance,
-  mockMarketBrief,
-  mockSectors,
-  mockSignals,
-  mockSparklines,
-} from '../mocks';
+import { apiClient } from '../api/client';
 import type {
   MarketBrief,
   MarketDominance,
@@ -39,35 +32,42 @@ const PICK_LABEL: Record<SignalType, string> = {
   D: 'Type D — 전환 기대',
 };
 
+const EMPTY_DOMINANCE: MarketDominance = {
+  kospi: { indi: 0, inst: 0, frgn: 0 },
+  kosdaq: { indi: 0, inst: 0, frgn: 0 },
+};
+
+const EMPTY_PICKS: Record<SignalType, TopPick[]> = { A: [], B: [], C: [], D: [] };
+
 export default function WarRoom() {
   const navigate = useNavigate();
 
   const { data: brief } = useQuery({
     queryKey: ['market', 'brief'],
-    queryFn: () => getOrMock<MarketBrief>('/market/brief', mockMarketBrief),
+    queryFn: () => apiClient.get<MarketBrief>('/market/brief'),
   });
   const { data: dominance } = useQuery({
     queryKey: ['market', 'dominance'],
-    queryFn: () => getOrMock<MarketDominance>('/market/dominance', mockDominance),
+    queryFn: () => apiClient.get<MarketDominance>('/market/dominance'),
   });
   const { data: sectors } = useQuery({
     queryKey: ['market', 'sectors'],
-    queryFn: () => getOrMock<SectorBubbleType[]>('/market/sectors', mockSectors),
+    queryFn: () => apiClient.get<SectorBubbleType[]>('/market/sectors'),
   });
   const { data: signals } = useQuery({
     queryKey: ['market', 'signals'],
-    queryFn: () => getOrMock<MarketSignals>('/market/signals', mockSignals),
+    queryFn: () => apiClient.get<MarketSignals>('/market/signals'),
   });
 
-  const briefData = brief ?? mockMarketBrief;
-  const dom = dominance ?? mockDominance;
-  const sectorData = sectors ?? mockSectors;
-  const sig = signals ?? mockSignals;
+  const dom = dominance ?? EMPTY_DOMINANCE;
+  const sectorData = sectors ?? [];
+  const picks = signals?.top_picks ?? EMPTY_PICKS;
 
+  const briefText = brief?.market_brief_text ?? '시장 브리핑 데이터를 불러오는 중입니다.';
   const briefAccent =
-    briefData.kospi_change_pct > 0
+    brief && brief.kospi_change_pct > 0
       ? TYPE_META.B.color
-      : briefData.kospi_change_pct < 0
+      : brief && brief.kospi_change_pct < 0
         ? TYPE_META.A.color
         : '#6B7280';
 
@@ -78,9 +78,7 @@ export default function WarRoom() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <div className="text-2xs uppercase tracking-wide text-ink-secondary">Market Brief</div>
-            <p className="text-base leading-relaxed text-ink-primary">
-              {briefData.market_brief_text}
-            </p>
+            <p className="text-base leading-relaxed text-ink-primary">{briefText}</p>
           </div>
           <button
             className="flex shrink-0 items-center gap-1.5 rounded-md bg-brand-primary px-3 py-2 text-xs font-semibold text-ink-primary transition hover:bg-brand-primary-hover"
@@ -122,10 +120,10 @@ export default function WarRoom() {
         <div className="col-span-12 xl:col-span-3">
           <Card title="👁 오늘의 주목 종목" className="h-full">
             <div className="flex max-h-[460px] flex-col gap-4 overflow-y-auto pr-1">
-              {(Object.keys(sig.top_picks) as SignalType[]).map((type) => {
+              {(['A', 'B', 'C', 'D'] as const).map((type) => {
                 const meta = TYPE_META[type];
-                const picks = sig.top_picks[type] ?? [];
-                if (picks.length === 0) return null;
+                const list = picks[type] ?? [];
+                if (list.length === 0) return null;
                 return (
                   <div key={type} className="flex flex-col gap-1.5">
                     <div
@@ -135,32 +133,38 @@ export default function WarRoom() {
                       {PICK_LABEL[type]}
                     </div>
                     <ul className="flex flex-col">
-                      {picks.map((p) => (
-                        <PickRow key={p.ticker} pick={p} onClick={() => navigate(`/deep-dive/${p.ticker}`)} />
+                      {list.map((p) => (
+                        <PickRow
+                          key={p.ticker}
+                          pick={p}
+                          onClick={() => navigate(`/deep-dive/${p.ticker}`)}
+                        />
                       ))}
                     </ul>
                   </div>
                 );
               })}
+              {Object.values(picks).every((v) => v.length === 0) && (
+                <EmptyBox label="주목 종목 데이터를 불러오는 중입니다" height={200} />
+              )}
             </div>
             <p className="mt-3 text-2xs text-ink-muted">※ 규칙 기반 자동 분류 결과 — 매수·매도 조언이 아닙니다.</p>
           </Card>
         </div>
       </div>
 
-      {/* Row 3 — Type 카드 4개 (스파크라인 내장) */}
+      {/* Row 3 — Type 카드 4개 (스파크라인 슬롯 유지) */}
       <div>
         <div className="mb-3 text-sm font-semibold text-ink-secondary">⚡ 오늘의 시그널 요약</div>
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           {(['A', 'B', 'C', 'D'] as const).map((t) => (
             <SignalTypeCard
               key={t}
-              type={t}
               label={TYPE_META[t].label}
               sub={TYPE_META[t].sub}
               color={TYPE_META[t].color}
-              count={t === 'A' ? sig.count_a : t === 'B' ? sig.count_b : t === 'C' ? sig.count_c : sig.count_d}
-              spark={mockSparklines[t]}
+              count={signals ? (t === 'A' ? signals.count_a : t === 'B' ? signals.count_b : t === 'C' ? signals.count_c : signals.count_d) : null}
+              spark={[]}
               onClick={() => navigate(`/screener?type=${t}`)}
             />
           ))}
@@ -173,10 +177,16 @@ export default function WarRoom() {
 }
 
 function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
-  const change = pick.change_pct ?? 0;
+  const change = pick.change_pct;
   const intensity = pick.type_intensity ?? 0;
   const changeCls =
-    change > 0 ? 'text-num-up' : change < 0 ? 'text-num-down' : 'text-num-flat';
+    change === undefined
+      ? 'text-ink-muted'
+      : change > 0
+        ? 'text-num-up'
+        : change < 0
+          ? 'text-num-down'
+          : 'text-num-flat';
   const typeColor = TYPE_META[pick.type].color;
 
   return (
@@ -188,7 +198,7 @@ function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
         <TypeBadge type={pick.type} />
         <span className="flex-grow truncate text-sm text-ink-primary">{pick.name}</span>
         <span className={`font-numeric text-2xs ${changeCls}`}>
-          {pick.change_pct !== undefined ? fmtPct(change) : '-'}
+          {change !== undefined ? fmtPct(change) : '-'}
         </span>
         <span
           className="hidden h-1 w-10 overflow-hidden rounded-full bg-surface-2 lg:block"
@@ -206,7 +216,6 @@ function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
 }
 
 function SignalTypeCard({
-  type,
   label,
   sub,
   color,
@@ -214,11 +223,10 @@ function SignalTypeCard({
   spark,
   onClick,
 }: {
-  type: SignalType;
   label: string;
   sub: string;
   color: string;
-  count: number;
+  count: number | null;
   spark: number[];
   onClick: () => void;
 }) {
@@ -253,11 +261,22 @@ function SignalTypeCard({
       </div>
 
       <div className="mt-4 flex items-baseline justify-between">
-        <span className="font-numeric text-2xl font-bold text-ink-primary">{count}</span>
+        <span className="font-numeric text-2xl font-bold text-ink-primary">
+          {count === null ? '-' : count}
+        </span>
         <span className="text-2xs text-ink-secondary">종목</span>
       </div>
-      {/* keep `type` used to silence lints; debug attr useful for testing */}
-      <span data-type={type} className="hidden" />
     </button>
+  );
+}
+
+function EmptyBox({ label, height = 160 }: { label: string; height?: number }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-md border border-dashed border-border-subtle text-2xs text-ink-muted"
+      style={{ height }}
+    >
+      {label}
+    </div>
   );
 }
