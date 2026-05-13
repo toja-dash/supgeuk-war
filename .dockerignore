@@ -1,0 +1,15 @@
+.git/
+.env
+
+frontend/node_modules/
+frontend/dist/
+
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/**/*.py[cod]
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/*.egg-info/
+backend/backfill_error.txt
+backend/scratch_test.py
