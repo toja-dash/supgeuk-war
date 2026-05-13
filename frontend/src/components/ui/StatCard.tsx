@@ -1,27 +1,34 @@
-import { ChangePct } from './Badge';
+import type { ReactNode } from 'react';
 
 interface StatCardProps {
   label: string;
-  value: string | number;
-  delta?: number;
-  deltaText?: string;
+  value: ReactNode;
+  sub?: ReactNode;
   borderColor?: string;
   onClick?: () => void;
+  valueClassName?: string;
 }
 
-export function StatCard({ label, value, delta, deltaText, borderColor, onClick }: StatCardProps) {
-  const borderClass = borderColor ? `border-l-4 border-l-[${borderColor}] border border-border-subtle` : `border border-border-subtle`;
-  
+export function StatCard({
+  label,
+  value,
+  sub,
+  borderColor,
+  onClick,
+  valueClassName = 'text-ink-primary',
+}: StatCardProps) {
   return (
-    <div 
-      className={`bg-surface rounded-lg p-5 flex flex-col gap-2 ${borderClass} ${onClick ? 'cursor-pointer hover:bg-surface-2 transition duration-fast' : ''}`}
+    <div
+      className={`flex flex-col gap-1.5 rounded-lg border border-border-subtle bg-surface p-5 shadow-card transition duration-fast ${
+        onClick ? 'cursor-pointer hover:bg-surface-2' : ''
+      }`}
+      style={borderColor ? { borderLeft: `4px solid ${borderColor}` } : undefined}
       onClick={onClick}
     >
-      <div className="text-ink-secondary text-sm font-medium">{label}</div>
+      <div className="text-2xs uppercase tracking-wide text-ink-secondary">{label}</div>
       <div className="flex items-baseline gap-2">
-        <span className="text-ink-primary text-2xl font-bold font-numeric">{value}</span>
-        {delta !== undefined && <ChangePct value={delta} />}
-        {deltaText && <span className="text-ink-secondary text-sm">{deltaText}</span>}
+        <span className={`font-numeric text-2xl font-bold ${valueClassName}`}>{value}</span>
+        {sub && <span className="text-sm text-ink-secondary">{sub}</span>}
       </div>
     </div>
   );

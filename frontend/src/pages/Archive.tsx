@@ -1,15 +1,135 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card } from '../components/ui/Card';
+import { StatCard } from '../components/ui/StatCard';
+import { Disclaimer } from '../components/ui/Disclaimer';
+import { getOrMock } from '../api/withMock';
+import { mockArchiveCases, mockArchiveSummary } from '../mocks';
+import type {
+  ArchiveCasesResponse,
+  ArchiveSummary,
+  SignalType,
+} from '../types/api';
+import { fmtDate, fmtInt, fmtPct, fmtSfi } from '../lib/format';
+
+const TYPES: Array<{ key: SignalType; label: string; sub: string; color: string }> = [
+  { key: 'A', label: 'Type A', sub: '쌍끌이 설거지', color: '#EF4444' },
+  { key: 'B', label: 'Type B', sub: '쌍끌이 매수', color: '#10B981' },
+  { key: 'C', label: 'Type C', sub: '개미털기', color: '#06B6D4' },
+  { key: 'D', label: 'Type D', sub: '기관 방어', color: '#F59E0B' },
+];
+
 export default function Archive() {
+  const [activeType, setActiveType] = useState<SignalType>('B');
+
+  const { data: summary } = useQuery({
+    queryKey: ['archive', 'summary'],
+    queryFn: () => getOrMock<ArchiveSummary>('/archive/summary', mockArchiveSummary),
+  });
+  const { data: cases } = useQuery({
+    queryKey: ['archive', 'cases', activeType],
+    queryFn: () =>
+      getOrMock<ArchiveCasesResponse>(
+        `/archive/cases?type=${activeType}&page=1&size=50`,
+        mockArchiveCases(activeType)
+      ),
+  });
+
+  const sum = summary?.[activeType] ?? mockArchiveSummary[activeType];
+  const items = cases?.items ?? mockArchiveCases(activeType).items;
+  const activeMeta = TYPES.find((t) => t.key === activeType)!;
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-bold">Archive</h1>
-
-      <div className="rounded-lg border border-border-subtle bg-surface p-6">
-        <p className="mb-4 text-ink-secondary">과거 수급 패턴 통계 및 사례</p>
+      {/* Row 1 — Type 탭 */}
+      <div className="flex gap-1 border-b border-border-subtle">
+        {TYPES.map((t) => {
+          const active = activeType === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setActiveType(t.key)}
+              className={`flex flex-col items-start gap-0.5 border-b-2 px-4 py-3 text-left transition ${
+                active ? 'text-ink-primary' : 'border-transparent text-ink-secondary hover:text-ink-primary'
+              }`}
+              style={active ? { borderColor: t.color } : undefined}
+            >
+              <span className="text-sm font-semibold">{t.label}</span>
+              <span className="text-2xs text-ink-muted">{t.sub}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="mt-8 pb-4 text-xs text-ink-muted">
-        * 본 서비스의 수급 데이터와 분석 결과는 투자 참고용이며 실제 투자 결과에 대한 책임을 지지 않습니다.
+      {/* Row 2 — 통계 카드 3개 */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatCard
+          label="과거 3년 총 발생 횟수"
+          value={fmtInt(sum.total_count)}
+          sub="건"
+          borderColor={activeMeta.color}
+        />
+        <StatCard
+          label="발생 후 5일 평균 수익률"
+          value={<span className={sum.avg_return_5d >= 0 ? 'text-num-up' : 'text-num-down'}>{fmtPct(sum.avg_return_5d)}</span>}
+          sub={`승률 ${(sum.win_rate_5d * 100).toFixed(0)}%`}
+          borderColor={activeMeta.color}
+        />
+        <StatCard
+          label="발생 후 20일 평균 수익률"
+          value={<span className={sum.avg_return_20d >= 0 ? 'text-num-up' : 'text-num-down'}>{fmtPct(sum.avg_return_20d)}</span>}
+          sub={`승률 ${(sum.win_rate_20d * 100).toFixed(0)}%`}
+          borderColor={activeMeta.color}
+        />
       </div>
+
+      {/* Row 3 — 과거 사례 테이블 */}
+      <Card title="📚 과거 주요 발생 사례" subtitle={sum.archive_summary} bodyClassName="p-0">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-border-subtle text-2xs uppercase text-ink-secondary">
+                <th className="px-4 py-2.5 text-left font-medium">발생일</th>
+                <th className="px-4 py-2.5 text-left font-medium">종목명</th>
+                <th className="px-4 py-2.5 text-left font-medium">섹터</th>
+                <th className="px-4 py-2.5 text-right font-medium">기관 SFI</th>
+                <th className="px-4 py-2.5 text-right font-medium">외인 SFI</th>
+                <th className="px-4 py-2.5 text-right font-medium">5일 후</th>
+                <th className="px-4 py-2.5 text-right font-medium">20일 후</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row, i) => (
+                <tr key={i} className="border-b border-border-subtle/60 hover:bg-surface-2">
+                  <td className="px-4 py-3 font-numeric text-ink-secondary">{fmtDate(row.date)}</td>
+                  <td className="px-4 py-3 font-semibold text-ink-primary">{row.name}</td>
+                  <td className="px-4 py-3 text-ink-secondary">{row.sector}</td>
+                  <td className="px-4 py-3 text-right font-numeric text-ink-primary">{fmtSfi(row.sfi_inst)}</td>
+                  <td className="px-4 py-3 text-right font-numeric text-ink-primary">{fmtSfi(row.sfi_frgn)}</td>
+                  <td className={`px-4 py-3 text-right font-numeric ${row.return_5d >= 0 ? 'text-num-up' : 'text-num-down'}`}>
+                    {fmtPct(row.return_5d)}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-numeric ${row.return_20d >= 0 ? 'text-num-up' : 'text-num-down'}`}>
+                    {fmtPct(row.return_20d)}
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-muted">
+                    조회된 사례가 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Disclaimer>
+        면책 고지: 과거 수급 패턴 및 통계 자료는 투자 참고용 역사적 맥락 데이터일 뿐, 미래 주가 상승을 보장하지 않습니다.
+        실제 투자에서는 외부 환경 등 다양한 요인이 작용하므로 참고 자료로만 활용하시기 바랍니다.
+      </Disclaimer>
     </div>
   );
 }
