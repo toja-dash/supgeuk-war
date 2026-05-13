@@ -142,8 +142,20 @@ export default function DeepDive() {
 
   const today = panelToday;
   const yest = panelPrev;
-  const yearHigh = allValid.length ? Math.max(...allValid.map((x) => x.high)) : null;
-  const yearLow = allValid.length ? Math.min(...allValid.map((x) => x.low)) : null;
+  // period에 맞춘 최저/최고 (시세 패널이 차트와 같은 기간을 반영하도록)
+  const periodHigh = validCandles.length
+    ? Math.max(...validCandles.map((x) => x.high))
+    : null;
+  const periodLow = validCandles.length
+    ? Math.min(...validCandles.map((x) => x.low))
+    : null;
+  // PERIODS의 사람 친화 라벨
+  const PERIOD_LABEL: Record<typeof period, string> = {
+    '1M': '1M',
+    '3M': '3M',
+    '6M': '6M',
+    '1Y': '1Y',
+  };
   const instAvg = positiveOrNull(s.avg_cost_20d_inst);
   const foreignAvg = positiveOrNull(s.avg_cost_20d_frgn);
   const hasSignalData = s.defense_status !== 'INSUFFICIENT_DATA';
@@ -316,9 +328,9 @@ export default function DeepDive() {
                 return (
                   <>
                     <PriceRow label={`${unitLabel} 최저`} value={fmtPrice(today?.low ?? null)} />
-                    <PriceRow label="1년 최저" value={fmtPrice(yearLow)} />
+                    <PriceRow label={`${PERIOD_LABEL[period]} 최저`} value={fmtPrice(periodLow)} />
                     <PriceRow label={`${unitLabel} 최고`} value={fmtPrice(today?.high ?? null)} />
-                    <PriceRow label="1년 최고" value={fmtPrice(yearHigh)} />
+                    <PriceRow label={`${PERIOD_LABEL[period]} 최고`} value={fmtPrice(periodHigh)} />
                     <PriceRow label="시작가" value={fmtPrice(today?.open ?? null)} />
                     <PriceRow label="종가" value={fmtPrice(today?.close ?? null)} />
                     <PriceRow label="거래량" value={today ? `${fmtInt(today.volume)}주` : '-'} />
