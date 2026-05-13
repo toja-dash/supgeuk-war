@@ -6,6 +6,7 @@ import { Disclaimer } from '../components/ui/Disclaimer';
 import { apiClient } from '../api/client';
 import type {
   ArchiveCasesResponse,
+  ArchiveHighlight,
   ArchiveSummary,
   ArchiveSummaryItem,
   SignalType,
@@ -42,9 +43,14 @@ export default function Archive() {
         `/archive/cases?type=${activeType}&page=1&size=50`,
       ),
   });
+  const { data: highlights } = useQuery({
+    queryKey: ['archive', 'highlights', activeType],
+    queryFn: () => apiClient.get<ArchiveHighlight[]>(`/archive/highlights?type=${activeType}&size=3`),
+  });
 
   const sum = summary?.[activeType] ?? EMPTY_SUMMARY;
   const items = cases?.items ?? [];
+  const highlightItems = highlights ?? [];
   const activeMeta = TYPES.find((t) => t.key === activeType)!;
 
   return (
@@ -72,7 +78,7 @@ export default function Archive() {
       {/* Row 2 — 통계 카드 3개 */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
-          label="과거 1년 총 발생 횟수"
+          label="과거 3개월 총 발생 횟수"
           value={fmtInt(sum.total_count)}
           sub="건"
           borderColor={activeMeta.color}
@@ -91,17 +97,23 @@ export default function Archive() {
         />
       </div>
 
-      {/* 패턴별 백테스트 하이라이트 — 슬롯 유지, 데이터 없음 표시 */}
+      {/* 패턴별 백테스트 하이라이트 */}
       <div>
         <div className="mb-3 flex items-end justify-between">
           <div>
             <h2 className="text-base font-bold text-ink-primary">📊 패턴별 백테스트 하이라이트</h2>
-            <p className="text-2xs text-ink-secondary">{activeMeta.label} 시그널 발생 시 대표 사례 3건</p>
+            <p className="text-2xs text-ink-secondary">
+              {activeMeta.label} 시그널 발생 후 20거래일 수익률 기준 대표 사례
+            </p>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <CaseStudyPlaceholder key={i} accent={activeMeta.color} />
+            highlightItems[i] ? (
+              <CaseStudyCard key={highlightItems[i].ticker + highlightItems[i].date} item={highlightItems[i]} accent={activeMeta.color} />
+            ) : (
+              <CaseStudyPlaceholder key={i} accent={activeMeta.color} />
+            )
           ))}
         </div>
       </div>
@@ -129,12 +141,8 @@ export default function Archive() {
                   <td className="px-4 py-3 text-ink-secondary">{row.sector}</td>
                   <td className="px-4 py-3 text-right font-numeric text-ink-primary">{fmtSfi(row.sfi_inst)}</td>
                   <td className="px-4 py-3 text-right font-numeric text-ink-primary">{fmtSfi(row.sfi_frgn)}</td>
-                  <td className={`px-4 py-3 text-right font-numeric ${row.return_5d >= 0 ? 'text-num-up' : 'text-num-down'}`}>
-                    {fmtPct(row.return_5d)}
-                  </td>
-                  <td className={`px-4 py-3 text-right font-numeric ${row.return_20d >= 0 ? 'text-num-up' : 'text-num-down'}`}>
-                    {fmtPct(row.return_20d)}
-                  </td>
+                  <ReturnCell value={row.return_5d} />
+                  <ReturnCell value={row.return_20d} />
                 </tr>
               ))}
               {items.length === 0 && (
@@ -153,6 +161,49 @@ export default function Archive() {
         면책 고지: 과거 수급 패턴 및 통계 자료는 투자 참고용 역사적 맥락 데이터일 뿐, 미래 주가 상승을 보장하지 않습니다.
         실제 투자에서는 외부 환경 등 다양한 요인이 작용하므로 참고 자료로만 활용하시기 바랍니다.
       </Disclaimer>
+    </div>
+  );
+}
+
+function ReturnCell({ value }: { value: number | null }) {
+  const colorClass = value == null ? 'text-ink-muted' : value >= 0 ? 'text-num-up' : 'text-num-down';
+  return <td className={`px-4 py-3 text-right font-numeric ${colorClass}`}>{fmtPct(value)}</td>;
+}
+
+function CaseStudyCard({ item, accent }: { item: ArchiveHighlight; accent: string }) {
+  const positive = item.return_20d >= 0;
+  const metricColor = positive ? '#EF4444' : '#3B82F6';
+
+  return (
+    <div className="relative flex min-h-[210px] flex-col overflow-hidden rounded-lg border border-border-subtle bg-surface p-6">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{ background: `linear-gradient(to right, transparent, ${accent}, transparent)` }}
+      />
+      <div className="flex items-center justify-between">
+        <span
+          className="inline-flex items-center rounded-md border px-2 py-0.5 text-2xs font-bold"
+          style={{ borderColor: `${accent}55`, color: accent, background: `${accent}14` }}
+        >
+          Type {item.type}
+        </span>
+        <span className="font-numeric text-2xs text-ink-muted">{fmtDate(item.date)}</span>
+      </div>
+      <div className="mt-4 flex items-baseline gap-2">
+        <span className="truncate text-lg font-bold text-ink-primary">{item.name}</span>
+        <span className="shrink-0 font-numeric text-2xs text-ink-muted">{item.ticker}</span>
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-ink-secondary">
+        기관 SFI {fmtSfi(item.sfi_inst)}, 외인 SFI {fmtSfi(item.sfi_frgn)}로 Type {item.type} 발생.
+        5거래일 후 {fmtPct(item.return_5d)}, 20거래일 후 {fmtPct(item.return_20d)}.
+      </p>
+      <div className="mt-auto flex items-end justify-between pt-6">
+        <span className="font-numeric text-3xl font-extrabold" style={{ color: metricColor }}>
+          {fmtPct(item.return_20d)}
+        </span>
+        <span className="pb-1 text-2xs text-ink-secondary">20거래일 후</span>
+      </div>
     </div>
   );
 }
