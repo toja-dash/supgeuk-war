@@ -235,6 +235,8 @@ function Th({
   align: 'left' | 'right' | 'center';
 }) {
   const alignCls = align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
+  const justifyCls =
+    align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
   return (
     <th
       onClick={onClick}
@@ -242,11 +244,30 @@ function Th({
         onClick ? 'cursor-pointer select-none hover:text-ink-primary' : ''
       } ${active ? 'text-ink-primary' : ''}`}
     >
-      <span className="inline-flex items-center gap-1">
+      <span className={`inline-flex items-center gap-1 ${justifyCls}`}>
         {children}
-        {active && <span className="text-2xs">{dir === 'asc' ? '▲' : '▼'}</span>}
+        {onClick && <SortIndicator active={active} dir={dir} />}
       </span>
     </th>
+  );
+}
+
+function SortIndicator({ active, dir }: { active?: boolean; dir?: 'asc' | 'desc' }) {
+  const upActive = active && dir === 'asc';
+  const downActive = active && dir === 'desc';
+  return (
+    <span className="ml-0.5 inline-flex flex-col items-center leading-none" aria-hidden>
+      <span
+        className={`text-[8px] leading-none ${upActive ? 'text-brand-primary' : 'text-ink-muted/40'}`}
+      >
+        ▲
+      </span>
+      <span
+        className={`-mt-0.5 text-[8px] leading-none ${downActive ? 'text-brand-primary' : 'text-ink-muted/40'}`}
+      >
+        ▼
+      </span>
+    </span>
   );
 }
 
