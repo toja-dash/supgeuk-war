@@ -9,14 +9,7 @@ import { CandlestickChart } from '../components/charts/Candlestick';
 import { AreaTrend } from '../components/charts/AreaTrend';
 import { DefenseLadder } from '../components/charts/DefenseLadder';
 import { FlowsBar } from '../components/charts/FlowsBar';
-import { getOrMock } from '../api/withMock';
-import {
-  mockCandles,
-  mockFlows,
-  mockMaEvents,
-  mockSimilarPatterns,
-  mockStock,
-} from '../mocks';
+import { apiClient } from '../api/client';
 import type {
   Candle,
   DailyFlow,
@@ -36,6 +29,20 @@ const TYPE_COLOR: Record<SignalType, string> = {
 
 const PERIODS = ['1M', '3M', '6M', '1Y'] as const;
 
+function isTradableCandle(candle: Candle) {
+  return (
+    candle.open > 0 &&
+    candle.high > 0 &&
+    candle.low > 0 &&
+    candle.close > 0 &&
+    candle.volume > 0
+  );
+}
+
+function positiveOrNull(value: number | null) {
+  return value != null && value > 0 ? value : null;
+}
+
 export default function DeepDive() {
   const { ticker } = useParams();
   const navigate = useNavigate();
@@ -44,43 +51,68 @@ export default function DeepDive() {
   const [candleSourceToggle, setCandleSourceToggle] = useState<'daily' | 'weekly'>('daily');
   const [chartMode, setChartMode] = useState<'candle' | 'trend'>('candle');
 
-  const { data: stock } = useQuery({
+  const stockQ = useQuery({
     queryKey: ['stock', ticker],
-    queryFn: () => getOrMock<StockInfo>(`/stock/${ticker}`, mockStock(ticker ?? '005930')),
+    queryFn: () => apiClient.get<StockInfo>(`/stock/${ticker}`),
   });
   const { data: candles } = useQuery({
     queryKey: ['stock', ticker, 'candles', period],
-    queryFn: () =>
-      getOrMock<Candle[]>(`/stock/${ticker}/candles?period=${period}`, mockCandles),
+    queryFn: () => apiClient.get<Candle[]>(`/stock/${ticker}/candles?period=${period}`),
   });
   const { data: flows } = useQuery({
     queryKey: ['stock', ticker, 'flows', 7],
-    queryFn: () => getOrMock<DailyFlow[]>(`/stock/${ticker}/flows?days=7`, mockFlows),
+    queryFn: () => apiClient.get<DailyFlow[]>(`/stock/${ticker}/flows?days=7`),
   });
   const { data: maEvents } = useQuery({
     queryKey: ['stock', ticker, 'ma'],
-    queryFn: () => getOrMock<MaEvent[]>(`/stock/${ticker}/ma-events?limit=5`, mockMaEvents),
+    queryFn: () => apiClient.get<MaEvent[]>(`/stock/${ticker}/ma-events?limit=5`),
   });
   const { data: patterns } = useQuery({
     queryKey: ['stock', ticker, 'patterns'],
-    queryFn: () =>
-      getOrMock<SimilarPattern[]>(`/stock/${ticker}/similar-patterns?n=3`, mockSimilarPatterns),
+    queryFn: () => apiClient.get<SimilarPattern[]>(`/stock/${ticker}/similar-patterns?n=3`),
   });
 
-  const s = stock ?? mockStock(ticker ?? '005930');
-  const c = candles ?? mockCandles;
-  const f = flows ?? mockFlows;
-  const ma = maEvents ?? mockMaEvents;
-  const sim = patterns ?? mockSimilarPatterns;
+  const s = stockQ.data;
 
-  const today = c[c.length - 1];
-  const yest = c[c.length - 2];
-  const yearHigh = Math.max(...c.map((x) => x.high));
-  const yearLow = Math.min(...c.map((x) => x.low));
+  if (stockQ.isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="h-24 animate-pulse rounded-lg bg-surface" />
+        <div className="h-20 animate-pulse rounded-lg bg-surface" />
+        <div className="h-[420px] animate-pulse rounded-lg bg-surface" />
+      </div>
+    );
+  }
+
+  if (!s) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="rounded-lg border border-border-subtle bg-surface p-10 text-center text-sm text-ink-secondary">
+          종목 정보를 불러올 수 없습니다.{' '}
+          <button onClick={() => navigate('/screener')} className="text-brand-primary hover:underline">
+            목록으로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const validCandles = (candles ?? []).filter(isTradableCandle);
+  const f = flows ?? [];
+  const ma = maEvents ?? [];
+  const sim = patterns ?? [];
+
+  const today = validCandles[validCandles.length - 1];
+  const yest = validCandles[validCandles.length - 2];
+  const yearHigh = validCandles.length ? Math.max(...validCandles.map((x) => x.high)) : null;
+  const yearLow = validCandles.length ? Math.min(...validCandles.map((x) => x.low)) : null;
+  const instAvg = positiveOrNull(s.avg_cost_20d_inst);
+  const foreignAvg = positiveOrNull(s.avg_cost_20d_frgn);
+  const hasSignalData = s.defense_status !== 'INSUFFICIENT_DATA';
   const accentColor = TYPE_COLOR[s.type];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-5">
       {/* Row 1 — 종목 헤더 */}
       <div className="flex flex-wrap items-end gap-4 border-b border-border-subtle pb-4">
         <div className="flex items-end gap-3">
@@ -117,10 +149,12 @@ export default function DeepDive() {
             <div className="text-2xs uppercase tracking-wide text-ink-secondary">
               🤖 AI 수급 전술 진단
             </div>
-            <h2 className="text-base font-semibold text-ink-primary">{s.deep_dive_headline}</h2>
+            <h2 className="text-base font-semibold text-ink-primary">
+              {s.deep_dive_headline || 'AI 진단 결과가 준비되지 않았습니다'}
+            </h2>
             <ul className="mt-1 space-y-0.5 text-sm text-ink-secondary">
-              <li>• {s.deep_dive_line1}</li>
-              <li>• {s.deep_dive_line2}</li>
+              {s.deep_dive_line1 && <li>• {s.deep_dive_line1}</li>}
+              {s.deep_dive_line2 && <li>• {s.deep_dive_line2}</li>}
             </ul>
           </div>
           <button className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-ink-secondary transition hover:text-ink-primary">
@@ -129,6 +163,14 @@ export default function DeepDive() {
           </button>
         </div>
       </Card>
+
+      {/* SFI 요약 */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <SfiSummaryCard label="기관 SFI" value={hasSignalData ? s.sfi_inst : null} color="#06B6D4" />
+        <SfiSummaryCard label="외국인 SFI" value={hasSignalData ? s.sfi_frgn : null} color="#A855F7" />
+        <SfiSummaryCard label="20일 기관 평단" value={instAvg} color="#06B6D4" isPrice />
+        <SfiSummaryCard label="20일 외인 평단" value={foreignAvg} color="#A855F7" isPrice />
+      </div>
 
       {/* Row 3 — 가격 차트 + 방어선 ladder */}
       <Card
@@ -169,37 +211,37 @@ export default function DeepDive() {
           </div>
         }
       >
-        <div className="grid grid-cols-12 gap-5">
-          <div className="col-span-12 xl:col-span-9">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="min-w-0">
             {chartMode === 'candle' ? (
               <CandlestickChart
-                candles={c}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                candles={validCandles}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
               />
             ) : (
               <AreaTrend
-                candles={c}
+                candles={validCandles}
                 color={accentColor}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
                 height={400}
               />
             )}
             <div className="mt-3 flex items-center justify-center gap-6 text-2xs text-ink-secondary">
-              <LegendDash color="#06B6D4" label={`기관 평단 ${fmtPrice(s.avg_cost_20d_inst)}`} />
-              <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(s.avg_cost_20d_frgn)}`} />
+              <LegendDash color="#06B6D4" label={`기관 평단 ${fmtPrice(instAvg)}`} />
+              <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(foreignAvg)}`} />
             </div>
           </div>
-          <div className="col-span-12 xl:col-span-3">
-            <div className="rounded-md border border-border-subtle bg-surface-2/30 p-4">
+          <div className="min-w-0">
+            <div className="h-full rounded-md border border-border-subtle bg-surface-2/30 p-4">
               <div className="mb-3 text-2xs uppercase tracking-wide text-ink-muted">
                 평단 방어선 ladder
               </div>
               <DefenseLadder
                 currentPrice={s.close}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
               />
             </div>
           </div>
@@ -207,8 +249,8 @@ export default function DeepDive() {
       </Card>
 
       {/* Row 4 — 시세 패널 / 7일 수급 */}
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 xl:col-span-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(360px,0.8fr)_minmax(0,1.2fr)]">
+        <div className="min-w-0">
           <Card
             title="💹 시세"
             action={
@@ -230,18 +272,18 @@ export default function DeepDive() {
             }
           >
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <PriceRow label="1일 최저" value={fmtPrice(today.low)} />
+              <PriceRow label="1일 최저" value={fmtPrice(today?.low ?? null)} />
               <PriceRow label="1년 최저" value={fmtPrice(yearLow)} />
-              <PriceRow label="1일 최고" value={fmtPrice(today.high)} />
+              <PriceRow label="1일 최고" value={fmtPrice(today?.high ?? null)} />
               <PriceRow label="1년 최고" value={fmtPrice(yearHigh)} />
-              <PriceRow label="시작가" value={fmtPrice(today.open)} />
-              <PriceRow label="종가" value={fmtPrice(today.close)} />
-              <PriceRow label="거래량" value={`${fmtInt(today.volume)}주`} />
+              <PriceRow label="시작가" value={fmtPrice(today?.open ?? null)} />
+              <PriceRow label="종가" value={fmtPrice(today?.close ?? null)} />
+              <PriceRow label="거래량" value={today ? `${fmtInt(today.volume)}주` : '-'} />
               <PriceRow
                 label="거래대금"
-                value={`${fmtInt(Math.round((today.close * today.volume) / 1e8))}억`}
+                value={today ? `${fmtInt(Math.round((today.close * today.volume) / 1e8))}억` : '-'}
               />
-              {yest && (
+              {yest && today && (
                 <>
                   <PriceRow label="전일 종가" value={fmtPrice(yest.close)} />
                   <PriceRow
@@ -256,7 +298,7 @@ export default function DeepDive() {
           </Card>
         </div>
 
-        <div className="col-span-12 xl:col-span-7">
+        <div className="min-w-0">
           <Card
             title="📊 최근 7일 수급 (순매수)"
             subtitle="단위: 억원"
@@ -289,75 +331,81 @@ export default function DeepDive() {
       </div>
 
       {/* Row 5 — MA 맥점 / 유사 패턴 */}
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 xl:col-span-6">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <div className="min-w-0">
           <Card title="🔍 주요 이동평균선 맥점" subtitle="5 / 20 / 60 / 120">
-            <ul className="flex flex-col divide-y divide-border-subtle">
-              {ma.map((ev, i) => (
-                <li key={i} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                  <span
-                    className={`mt-0.5 rounded-md px-2 py-0.5 text-2xs font-semibold ${
-                      ev.event_type === 'GOLDEN_CROSS'
-                        ? 'bg-signal-b-bg text-signal-b'
-                        : 'bg-signal-a-bg text-signal-a'
-                    }`}
-                  >
-                    {ev.event_type === 'GOLDEN_CROSS' ? '골든크로스' : '데드크로스'}
-                  </span>
-                  <div className="flex-grow">
-                    <div className="text-sm text-ink-primary">
-                      {fmtDate(ev.date)} · {fmtPrice(ev.short_value)} / {fmtPrice(ev.long_value)}
+            {ma.length > 0 ? (
+              <ul className="flex flex-col divide-y divide-border-subtle">
+                {ma.map((ev, i) => (
+                  <li key={i} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    <span
+                      className={`mt-0.5 rounded-md px-2 py-0.5 text-2xs font-semibold ${
+                        ev.event_type === 'GOLDEN_CROSS'
+                          ? 'bg-signal-b-bg text-signal-b'
+                          : 'bg-signal-a-bg text-signal-a'
+                      }`}
+                    >
+                      {ev.event_type === 'GOLDEN_CROSS' ? '골든크로스' : '데드크로스'}
+                    </span>
+                    <div className="flex-grow">
+                      <div className="text-sm text-ink-primary">
+                        {fmtDate(ev.date)} · {fmtPrice(ev.short_value)} / {fmtPrice(ev.long_value)}
+                      </div>
+                      <div className="text-2xs text-ink-secondary">{ev.interpretation}</div>
                     </div>
-                    <div className="text-2xs text-ink-secondary">{ev.interpretation}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyBox label="이동평균선 이벤트 데이터가 없습니다" height={160} />
+            )}
           </Card>
         </div>
 
-        <div className="col-span-12 xl:col-span-6">
+        <div className="min-w-0">
           <Card title="📚 과거 패턴 유사도 Top 3" subtitle="현재 수급 패턴과 유사한 과거 구간">
-            <ul className="flex flex-col divide-y divide-border-subtle">
-              {sim.map((p, i) => (
-                <li
-                  key={i}
-                  className="grid grid-cols-12 items-center gap-2 py-3 first:pt-0 last:pb-0"
-                >
-                  <div className="col-span-5">
-                    <div className="text-sm text-ink-primary">{p.similar_name}</div>
-                    <div className="text-2xs text-ink-muted">
-                      {fmtDate(p.period_start)} ~ {fmtDate(p.period_end)}
+            {sim.length > 0 ? (
+              <ul className="flex flex-col divide-y divide-border-subtle">
+                {sim.map((p, i) => (
+                  <li
+                    key={i}
+                    className="grid grid-cols-12 items-center gap-2 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="col-span-5">
+                      <div className="text-sm text-ink-primary">{p.similar_name}</div>
+                      <div className="text-2xs text-ink-muted">
+                        {fmtDate(p.period_start)} ~ {fmtDate(p.period_end)}
+                      </div>
                     </div>
-                  </div>
-                  <div className="col-span-3 text-center">
-                    <div className="font-numeric text-lg font-bold text-ink-primary">
-                      {(p.similarity * 100).toFixed(0)}%
+                    <div className="col-span-3 text-center">
+                      <div className="font-numeric text-lg font-bold text-ink-primary">
+                        {(p.similarity * 100).toFixed(0)}%
+                      </div>
+                      <div className="text-2xs text-ink-muted">유사도</div>
                     </div>
-                    <div className="text-2xs text-ink-muted">유사도</div>
-                  </div>
-                  <div className="col-span-4 text-right text-2xs">
-                    <div className="text-ink-secondary">
-                      5일 후 <span className={p.return_5d >= 0 ? 'text-num-up' : 'text-num-down'}>{fmtPct(p.return_5d)}</span>
+                    <div className="col-span-4 text-right text-2xs">
+                      <div className="text-ink-secondary">
+                        5일 후{' '}
+                        <span className={p.return_5d >= 0 ? 'text-num-up' : 'text-num-down'}>
+                          {fmtPct(p.return_5d)}
+                        </span>
+                      </div>
+                      <div className="text-ink-secondary">
+                        20일 후{' '}
+                        <span className={p.return_20d >= 0 ? 'text-num-up' : 'text-num-down'}>
+                          {fmtPct(p.return_20d)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-ink-secondary">
-                      20일 후 <span className={p.return_20d >= 0 ? 'text-num-up' : 'text-num-down'}>{fmtPct(p.return_20d)}</span>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyBox label="과거 유사 패턴 데이터가 없습니다" height={160} />
+            )}
             <p className="mt-3 text-2xs text-ink-muted">※ 과거 통계는 미래 수익을 보장하지 않습니다.</p>
           </Card>
         </div>
-      </div>
-
-      {/* SFI 요약 */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <SfiSummaryCard label="기관 SFI" value={s.sfi_inst} color="#06B6D4" />
-        <SfiSummaryCard label="외국인 SFI" value={s.sfi_frgn} color="#A855F7" />
-        <SfiSummaryCard label="20일 기관 평단" value={s.avg_cost_20d_inst} color="#06B6D4" isPrice />
-        <SfiSummaryCard label="20일 외인 평단" value={s.avg_cost_20d_frgn} color="#A855F7" isPrice />
       </div>
 
       <Disclaimer />
@@ -432,6 +480,17 @@ function SfiSummaryCard({
       <div className="mt-1 font-numeric text-xl font-bold text-ink-primary">
         {value === null ? '-' : isPrice ? fmtPrice(value) : fmtSfi(value)}
       </div>
+    </div>
+  );
+}
+
+function EmptyBox({ label, height = 160 }: { label: string; height?: number }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-md border border-dashed border-border-subtle text-2xs text-ink-muted"
+      style={{ height }}
+    >
+      {label}
     </div>
   );
 }

@@ -7,8 +7,7 @@ import { Slider } from '../components/ui/Slider';
 import { DefenseBadge, TypeBadge, ChangePct } from '../components/ui/Badge';
 import { Disclaimer } from '../components/ui/Disclaimer';
 import { SearchIcon } from '../components/icons';
-import { getOrMock } from '../api/withMock';
-import { mockScreener } from '../mocks';
+import { apiClient } from '../api/client';
 import type { ScreenerResponse, ScreenerItem, SignalType, DefenseStatus } from '../types/api';
 import { fmtPct, fmtPrice, fmtSfi } from '../lib/format';
 import { useFilterStore } from '../stores/filterStore';
@@ -49,13 +48,12 @@ export default function Screener() {
       filters.sfi_frgn_min,
     ],
     queryFn: () =>
-      getOrMock<ScreenerResponse>(
+      apiClient.get<ScreenerResponse>(
         `/screener?type=${filters.type}&defense=${filters.defense}&sfi_inst_min=${filters.sfi_inst_min}&sfi_frgn_min=${filters.sfi_frgn_min}`,
-        mockScreener
       ),
   });
 
-  const items = data?.items ?? mockScreener.items;
+  const items = data?.items ?? [];
 
   const filtered = useMemo(() => {
     return items.filter((it) => {

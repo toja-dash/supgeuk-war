@@ -82,8 +82,18 @@ export function SectorBubble({ data, onSelect }: Props) {
             }}
           />
           <ZAxis type="number" dataKey="z" range={[200, 1800]} />
-          <ReferenceLine x={0} stroke="#4B5563" strokeDasharray="4 4" />
-          <ReferenceLine y={0} stroke="#4B5563" strokeDasharray="4 4" />
+          <ReferenceLine
+            x={0}
+            stroke="#E5E7EB"
+            strokeWidth={1.5}
+            ifOverflow="extendDomain"
+          />
+          <ReferenceLine
+            y={0}
+            stroke="#E5E7EB"
+            strokeWidth={1.5}
+            ifOverflow="extendDomain"
+          />
           <Tooltip
             cursor={{ strokeDasharray: '3 3' }}
             contentStyle={{

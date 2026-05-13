@@ -7,7 +7,30 @@ interface Props {
 }
 
 export function Sparkline({ data, color, width = 96, height = 36, className = '' }: Props) {
-  if (data.length === 0) return null;
+  // 빈 데이터: 중앙 dashed baseline만 그려서 sparkline 슬롯임을 표시
+  if (data.length === 0) {
+    return (
+      <svg
+        className={className}
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <line
+          x1={0}
+          y1={height / 2}
+          x2={width}
+          y2={height / 2}
+          stroke={color}
+          strokeOpacity={0.3}
+          strokeWidth={1}
+          strokeDasharray="3 3"
+        />
+      </svg>
+    );
+  }
 
   const min = Math.min(...data);
   const max = Math.max(...data);

@@ -3,12 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Card } from '../components/ui/Card';
 import { StatCard } from '../components/ui/StatCard';
 import { Disclaimer } from '../components/ui/Disclaimer';
-import { getOrMock } from '../api/withMock';
-import { mockArchiveCases, mockArchiveSummary, mockCaseStudies } from '../mocks';
+import { apiClient } from '../api/client';
 import type {
   ArchiveCasesResponse,
   ArchiveSummary,
-  CaseStudy,
+  ArchiveSummaryItem,
   SignalType,
 } from '../types/api';
 import { fmtDate, fmtInt, fmtPct, fmtSfi } from '../lib/format';
@@ -20,24 +19,32 @@ const TYPES: Array<{ key: SignalType; label: string; sub: string; color: string 
   { key: 'D', label: 'Type D', sub: '기관 방어', color: '#F59E0B' },
 ];
 
+const EMPTY_SUMMARY: ArchiveSummaryItem = {
+  total_count: 0,
+  avg_return_5d: 0,
+  win_rate_5d: 0,
+  avg_return_20d: 0,
+  win_rate_20d: 0,
+  archive_summary: '데이터를 불러오는 중입니다.',
+};
+
 export default function Archive() {
   const [activeType, setActiveType] = useState<SignalType>('B');
 
   const { data: summary } = useQuery({
     queryKey: ['archive', 'summary'],
-    queryFn: () => getOrMock<ArchiveSummary>('/archive/summary', mockArchiveSummary),
+    queryFn: () => apiClient.get<ArchiveSummary>('/archive/summary'),
   });
   const { data: cases } = useQuery({
     queryKey: ['archive', 'cases', activeType],
     queryFn: () =>
-      getOrMock<ArchiveCasesResponse>(
+      apiClient.get<ArchiveCasesResponse>(
         `/archive/cases?type=${activeType}&page=1&size=50`,
-        mockArchiveCases(activeType)
       ),
   });
 
-  const sum = summary?.[activeType] ?? mockArchiveSummary[activeType];
-  const items = cases?.items ?? mockArchiveCases(activeType).items;
+  const sum = summary?.[activeType] ?? EMPTY_SUMMARY;
+  const items = cases?.items ?? [];
   const activeMeta = TYPES.find((t) => t.key === activeType)!;
 
   return (
@@ -65,7 +72,7 @@ export default function Archive() {
       {/* Row 2 — 통계 카드 3개 */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
-          label="과거 3년 총 발생 횟수"
+          label="과거 1년 총 발생 횟수"
           value={fmtInt(sum.total_count)}
           sub="건"
           borderColor={activeMeta.color}
@@ -84,7 +91,7 @@ export default function Archive() {
         />
       </div>
 
-      {/* 패턴별 백테스트 하이라이트 */}
+      {/* 패턴별 백테스트 하이라이트 — 슬롯 유지, 데이터 없음 표시 */}
       <div>
         <div className="mb-3 flex items-end justify-between">
           <div>
@@ -93,8 +100,8 @@ export default function Archive() {
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          {(mockCaseStudies[activeType] ?? []).map((cs, i) => (
-            <CaseStudyCard key={i} cs={cs} accent={activeMeta.color} />
+          {[0, 1, 2].map((i) => (
+            <CaseStudyPlaceholder key={i} accent={activeMeta.color} />
           ))}
         </div>
       </div>
@@ -150,43 +157,35 @@ export default function Archive() {
   );
 }
 
-function CaseStudyCard({ cs, accent }: { cs: CaseStudy; accent: string }) {
-  const positive = cs.metric_value > 0;
-  const metricColor = positive ? '#EF4444' : cs.metric_value < 0 ? '#3B82F6' : '#9CA3AF';
-  const isPct = cs.metric_label.includes('수익') || cs.metric_label.includes('반등') || cs.metric_label.includes('변동');
-
+function CaseStudyPlaceholder({ accent }: { accent: string }) {
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-lg border border-border-subtle bg-surface p-6 transition hover:-translate-y-0.5 hover:border-border hover:shadow-elevated">
+    <div className="relative flex flex-col overflow-hidden rounded-lg border border-dashed border-border-subtle bg-surface/40 p-6">
       <span
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px"
-        style={{ background: `linear-gradient(to right, transparent, ${accent}, transparent)` }}
+        style={{ background: `linear-gradient(to right, transparent, ${accent}55, transparent)` }}
       />
       <div className="flex items-center justify-between">
         <span
-          className="inline-flex items-center rounded-md border px-2 py-0.5 text-2xs font-bold"
-          style={{ borderColor: `${accent}55`, color: accent, background: `${accent}14` }}
+          className="inline-flex items-center rounded-md border px-2 py-0.5 text-2xs font-bold opacity-60"
+          style={{ borderColor: `${accent}55`, color: accent, background: `${accent}10` }}
         >
-          Type {cs.type}
+          Type —
         </span>
         <span className="inline-flex items-center gap-1.5 text-2xs text-ink-muted">
-          <span className="h-1.5 w-1.5 rounded-full bg-ink-secondary/50" />
+          <span className="h-1.5 w-1.5 rounded-full bg-ink-secondary/40" />
           Case Study
         </span>
       </div>
       <div className="mt-4 flex items-baseline gap-2">
-        <span className="text-lg font-bold text-ink-primary">{cs.name}</span>
-        <span className="font-numeric text-2xs text-ink-muted">· {cs.period}</span>
+        <span className="text-lg font-bold text-ink-muted">데이터 준비 중</span>
       </div>
-      <p className="mt-3 text-sm text-ink-primary">{cs.headline}</p>
-      <p className="mt-3 text-2xs leading-relaxed text-ink-secondary">{cs.description}</p>
+      <p className="mt-3 text-xs leading-relaxed text-ink-muted">
+        해당 Type의 대표 백테스트 사례가 곧 추가됩니다.
+      </p>
       <div className="mt-auto flex items-end justify-between pt-6">
-        <span className="font-numeric text-3xl font-extrabold" style={{ color: metricColor }}>
-          {positive ? '+' : ''}
-          {cs.metric_value.toFixed(1)}
-          {isPct ? '%' : ''}
-        </span>
-        <span className="pb-1 text-2xs text-ink-secondary">{cs.metric_label}</span>
+        <span className="font-numeric text-3xl font-extrabold text-ink-muted">--</span>
+        <span className="pb-1 text-2xs text-ink-muted">대표 메트릭</span>
       </div>
     </div>
   );
