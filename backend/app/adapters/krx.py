@@ -183,7 +183,10 @@ def _fetch_daily_from_fdr_listing(target_date: date) -> pd.DataFrame:
 
 def fetch_daily(target_date: date) -> pd.DataFrame:
     try:
-        return _fetch_daily_from_official_api(target_date)
+        df = _fetch_daily_from_official_api(target_date)
+        if df.empty:
+            raise RuntimeError(f"KRX Open API returned no rows for {target_date}")
+        return df
     except Exception as exc:
         print(f"Failed to fetch KRX Open API daily data for {target_date}: {exc}")
         return _fetch_daily_from_fdr_listing(target_date)
