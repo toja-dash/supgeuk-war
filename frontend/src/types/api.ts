@@ -37,6 +37,18 @@ export interface TopPick {
   type: SignalType;
   type_intensity?: number;
   weighted_priority?: number;
+  change_pct?: number;
+}
+
+export interface CaseStudy {
+  type: SignalType;
+  name: string;
+  ticker: string;
+  period: string;
+  headline: string;
+  description: string;
+  metric_value: number;
+  metric_label: string;
 }
 
 export interface MarketSignals {

@@ -2,17 +2,18 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from '../components/icons';
 import { Card } from '../components/ui/Card';
-import { StatCard } from '../components/ui/StatCard';
 import { TypeBadge } from '../components/ui/Badge';
 import { Disclaimer } from '../components/ui/Disclaimer';
 import { DivergingBar } from '../components/charts/DivergingBar';
 import { SectorBubble } from '../components/charts/SectorBubble';
+import { Sparkline } from '../components/charts/Sparkline';
 import { getOrMock } from '../api/withMock';
 import {
   mockDominance,
   mockMarketBrief,
   mockSectors,
   mockSignals,
+  mockSparklines,
 } from '../mocks';
 import type {
   MarketBrief,
@@ -22,6 +23,7 @@ import type {
   SignalType,
   TopPick,
 } from '../types/api';
+import { fmtPct } from '../lib/format';
 
 const TYPE_META: Record<SignalType, { label: string; sub: string; color: string }> = {
   A: { label: 'Type A', sub: '쌍끌이 설거지', color: '#EF4444' },
@@ -83,7 +85,9 @@ export default function WarRoom() {
           <button
             className="flex shrink-0 items-center gap-1.5 rounded-md bg-brand-primary px-3 py-2 text-xs font-semibold text-ink-primary transition hover:bg-brand-primary-hover"
           >
-            <SparkleIcon />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M12 2l1.6 4.8L18 8.4l-4.4 1.6L12 14.8 10.4 10 6 8.4l4.4-1.6L12 2zM18 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
+            </svg>
             AI 시장 브리핑
           </button>
         </div>
@@ -144,38 +148,22 @@ export default function WarRoom() {
         </div>
       </div>
 
-      {/* Row 3 — Type 카드 4개 */}
+      {/* Row 3 — Type 카드 4개 (스파크라인 내장) */}
       <div>
         <div className="mb-3 text-sm font-semibold text-ink-secondary">⚡ 오늘의 시그널 요약</div>
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <StatCard
-            label="Type A · 쌍끌이 설거지"
-            value={sig.count_a}
-            sub="종목"
-            borderColor={TYPE_META.A.color}
-            onClick={() => navigate('/screener?type=A')}
-          />
-          <StatCard
-            label="Type B · 쌍끌이 매수"
-            value={sig.count_b}
-            sub="종목"
-            borderColor={TYPE_META.B.color}
-            onClick={() => navigate('/screener?type=B')}
-          />
-          <StatCard
-            label="Type C · 개미털기"
-            value={sig.count_c}
-            sub="종목"
-            borderColor={TYPE_META.C.color}
-            onClick={() => navigate('/screener?type=C')}
-          />
-          <StatCard
-            label="Type D · 기관 방어"
-            value={sig.count_d}
-            sub="종목"
-            borderColor={TYPE_META.D.color}
-            onClick={() => navigate('/screener?type=D')}
-          />
+          {(['A', 'B', 'C', 'D'] as const).map((t) => (
+            <SignalTypeCard
+              key={t}
+              type={t}
+              label={TYPE_META[t].label}
+              sub={TYPE_META[t].sub}
+              color={TYPE_META[t].color}
+              count={t === 'A' ? sig.count_a : t === 'B' ? sig.count_b : t === 'C' ? sig.count_c : sig.count_d}
+              spark={mockSparklines[t]}
+              onClick={() => navigate(`/screener?type=${t}`)}
+            />
+          ))}
         </div>
       </div>
 
@@ -185,26 +173,91 @@ export default function WarRoom() {
 }
 
 function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
+  const change = pick.change_pct ?? 0;
+  const intensity = pick.type_intensity ?? 0;
+  const changeCls =
+    change > 0 ? 'text-num-up' : change < 0 ? 'text-num-down' : 'text-num-flat';
+  const typeColor = TYPE_META[pick.type].color;
+
   return (
     <li>
       <button
         onClick={onClick}
-        className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition hover:bg-surface-2"
+        className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition hover:bg-surface-2"
       >
-        <span className="flex items-center gap-2 text-sm">
-          <TypeBadge type={pick.type} />
-          <span className="text-ink-primary">{pick.name}</span>
+        <TypeBadge type={pick.type} />
+        <span className="flex-grow truncate text-sm text-ink-primary">{pick.name}</span>
+        <span className={`font-numeric text-2xs ${changeCls}`}>
+          {pick.change_pct !== undefined ? fmtPct(change) : '-'}
         </span>
-        <ChevronRight className="h-4 w-4 text-ink-muted" />
+        <span
+          className="hidden h-1 w-10 overflow-hidden rounded-full bg-surface-2 lg:block"
+          title={`강도 ${Math.round(intensity * 100)}%`}
+        >
+          <span
+            className="block h-full rounded-full"
+            style={{ width: `${intensity * 100}%`, background: typeColor }}
+          />
+        </span>
+        <ChevronRight className="h-4 w-4 text-ink-muted transition group-hover:translate-x-0.5 group-hover:text-ink-primary" />
       </button>
     </li>
   );
 }
 
-function SparkleIcon() {
+function SignalTypeCard({
+  type,
+  label,
+  sub,
+  color,
+  count,
+  spark,
+  onClick,
+}: {
+  type: SignalType;
+  label: string;
+  sub: string;
+  color: string;
+  count: number;
+  spark: number[];
+  onClick: () => void;
+}) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2l1.6 4.8L18 8.4l-4.4 1.6L12 14.8 10.4 10 6 8.4l4.4-1.6L12 2zM18 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
-    </svg>
+    <button
+      onClick={onClick}
+      className="group relative overflow-hidden rounded-lg border border-border-subtle bg-surface p-5 text-left transition hover:-translate-y-0.5 hover:border-border hover:bg-surface-2 hover:shadow-elevated"
+      style={{ borderLeft: `4px solid ${color}` }}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-70"
+        style={{ background: `linear-gradient(to right, transparent, ${color}, transparent)` }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity group-hover:opacity-100"
+        style={{ boxShadow: `inset 0 0 32px ${color}1E` }}
+      />
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <span
+            className="inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-2xs font-bold"
+            style={{ borderColor: `${color}55`, color, background: `${color}14` }}
+          >
+            {label}
+          </span>
+          <span className="text-sm font-semibold text-ink-primary">{sub}</span>
+        </div>
+        <Sparkline data={spark} color={color} width={88} height={36} />
+      </div>
+
+      <div className="mt-4 flex items-baseline justify-between">
+        <span className="font-numeric text-2xl font-bold text-ink-primary">{count}</span>
+        <span className="text-2xs text-ink-secondary">종목</span>
+      </div>
+      {/* keep `type` used to silence lints; debug attr useful for testing */}
+      <span data-type={type} className="hidden" />
+    </button>
   );
 }

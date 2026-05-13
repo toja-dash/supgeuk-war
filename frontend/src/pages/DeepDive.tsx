@@ -6,6 +6,8 @@ import { Card } from '../components/ui/Card';
 import { TypeBadge, DefenseBadge, ChangePct } from '../components/ui/Badge';
 import { Disclaimer } from '../components/ui/Disclaimer';
 import { CandlestickChart } from '../components/charts/Candlestick';
+import { AreaTrend } from '../components/charts/AreaTrend';
+import { DefenseLadder } from '../components/charts/DefenseLadder';
 import { FlowsBar } from '../components/charts/FlowsBar';
 import { getOrMock } from '../api/withMock';
 import {
@@ -40,6 +42,7 @@ export default function DeepDive() {
   const [period, setPeriod] = useState<(typeof PERIODS)[number]>('3M');
   const [showSubjects, setShowSubjects] = useState({ indi: true, inst: true, frgn: true });
   const [candleSourceToggle, setCandleSourceToggle] = useState<'daily' | 'weekly'>('daily');
+  const [chartMode, setChartMode] = useState<'candle' | 'trend'>('candle');
 
   const { data: stock } = useQuery({
     queryKey: ['stock', ticker],
@@ -127,36 +130,79 @@ export default function DeepDive() {
         </div>
       </Card>
 
-      {/* Row 3 — 캔들차트 */}
+      {/* Row 3 — 가격 차트 + 방어선 ladder */}
       <Card
-        title="📈 일별 시세 (캔들차트)"
+        title={chartMode === 'candle' ? '📈 일별 시세 (캔들차트)' : '📈 가격 추이 (그라데이션)'}
         subtitle="기관·외인 평단선 오버레이"
         action={
-          <div className="flex gap-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`rounded-md px-2 py-1 text-2xs ${
-                  period === p
-                    ? 'bg-brand-primary text-ink-primary'
-                    : 'bg-surface-2 text-ink-secondary hover:text-ink-primary'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1 rounded-md bg-surface-2/60 p-0.5">
+              {(['candle', 'trend'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setChartMode(m)}
+                  className={`rounded px-2 py-1 text-2xs font-medium transition ${
+                    chartMode === m
+                      ? 'bg-brand-primary text-ink-primary'
+                      : 'text-ink-secondary hover:text-ink-primary'
+                  }`}
+                >
+                  {m === 'candle' ? '캔들' : '추세'}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              {PERIODS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`rounded-md px-2 py-1 text-2xs ${
+                    period === p
+                      ? 'bg-brand-primary text-ink-primary'
+                      : 'bg-surface-2 text-ink-secondary hover:text-ink-primary'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
           </div>
         }
       >
-        <CandlestickChart
-          candles={c}
-          instAvg={s.avg_cost_20d_inst}
-          foreignAvg={s.avg_cost_20d_frgn}
-        />
-        <div className="mt-3 flex items-center justify-center gap-6 text-2xs text-ink-secondary">
-          <LegendDash color="#06B6D4" label={`기관 평단 ${fmtPrice(s.avg_cost_20d_inst)}`} />
-          <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(s.avg_cost_20d_frgn)}`} />
+        <div className="grid grid-cols-12 gap-5">
+          <div className="col-span-12 xl:col-span-9">
+            {chartMode === 'candle' ? (
+              <CandlestickChart
+                candles={c}
+                instAvg={s.avg_cost_20d_inst}
+                foreignAvg={s.avg_cost_20d_frgn}
+              />
+            ) : (
+              <AreaTrend
+                candles={c}
+                color={accentColor}
+                instAvg={s.avg_cost_20d_inst}
+                foreignAvg={s.avg_cost_20d_frgn}
+                height={400}
+              />
+            )}
+            <div className="mt-3 flex items-center justify-center gap-6 text-2xs text-ink-secondary">
+              <LegendDash color="#06B6D4" label={`기관 평단 ${fmtPrice(s.avg_cost_20d_inst)}`} />
+              <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(s.avg_cost_20d_frgn)}`} />
+            </div>
+          </div>
+          <div className="col-span-12 xl:col-span-3">
+            <div className="rounded-md border border-border-subtle bg-surface-2/30 p-4">
+              <div className="mb-3 text-2xs uppercase tracking-wide text-ink-muted">
+                평단 방어선 ladder
+              </div>
+              <DefenseLadder
+                currentPrice={s.close}
+                instAvg={s.avg_cost_20d_inst}
+                foreignAvg={s.avg_cost_20d_frgn}
+              />
+            </div>
+          </div>
         </div>
       </Card>
 

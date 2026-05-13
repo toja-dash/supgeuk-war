@@ -4,10 +4,11 @@ import { Card } from '../components/ui/Card';
 import { StatCard } from '../components/ui/StatCard';
 import { Disclaimer } from '../components/ui/Disclaimer';
 import { getOrMock } from '../api/withMock';
-import { mockArchiveCases, mockArchiveSummary } from '../mocks';
+import { mockArchiveCases, mockArchiveSummary, mockCaseStudies } from '../mocks';
 import type {
   ArchiveCasesResponse,
   ArchiveSummary,
+  CaseStudy,
   SignalType,
 } from '../types/api';
 import { fmtDate, fmtInt, fmtPct, fmtSfi } from '../lib/format';
@@ -83,6 +84,21 @@ export default function Archive() {
         />
       </div>
 
+      {/* 패턴별 백테스트 하이라이트 */}
+      <div>
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <h2 className="text-base font-bold text-ink-primary">📊 패턴별 백테스트 하이라이트</h2>
+            <p className="text-2xs text-ink-secondary">{activeMeta.label} 시그널 발생 시 대표 사례 3건</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          {(mockCaseStudies[activeType] ?? []).map((cs, i) => (
+            <CaseStudyCard key={i} cs={cs} accent={activeMeta.color} />
+          ))}
+        </div>
+      </div>
+
       {/* Row 3 — 과거 사례 테이블 */}
       <Card title="📚 과거 주요 발생 사례" subtitle={sum.archive_summary} bodyClassName="p-0">
         <div className="overflow-x-auto">
@@ -130,6 +146,48 @@ export default function Archive() {
         면책 고지: 과거 수급 패턴 및 통계 자료는 투자 참고용 역사적 맥락 데이터일 뿐, 미래 주가 상승을 보장하지 않습니다.
         실제 투자에서는 외부 환경 등 다양한 요인이 작용하므로 참고 자료로만 활용하시기 바랍니다.
       </Disclaimer>
+    </div>
+  );
+}
+
+function CaseStudyCard({ cs, accent }: { cs: CaseStudy; accent: string }) {
+  const positive = cs.metric_value > 0;
+  const metricColor = positive ? '#EF4444' : cs.metric_value < 0 ? '#3B82F6' : '#9CA3AF';
+  const isPct = cs.metric_label.includes('수익') || cs.metric_label.includes('반등') || cs.metric_label.includes('변동');
+
+  return (
+    <div className="group relative flex flex-col overflow-hidden rounded-lg border border-border-subtle bg-surface p-6 transition hover:-translate-y-0.5 hover:border-border hover:shadow-elevated">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{ background: `linear-gradient(to right, transparent, ${accent}, transparent)` }}
+      />
+      <div className="flex items-center justify-between">
+        <span
+          className="inline-flex items-center rounded-md border px-2 py-0.5 text-2xs font-bold"
+          style={{ borderColor: `${accent}55`, color: accent, background: `${accent}14` }}
+        >
+          Type {cs.type}
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-2xs text-ink-muted">
+          <span className="h-1.5 w-1.5 rounded-full bg-ink-secondary/50" />
+          Case Study
+        </span>
+      </div>
+      <div className="mt-4 flex items-baseline gap-2">
+        <span className="text-lg font-bold text-ink-primary">{cs.name}</span>
+        <span className="font-numeric text-2xs text-ink-muted">· {cs.period}</span>
+      </div>
+      <p className="mt-3 text-sm text-ink-primary">{cs.headline}</p>
+      <p className="mt-3 text-2xs leading-relaxed text-ink-secondary">{cs.description}</p>
+      <div className="mt-auto flex items-end justify-between pt-6">
+        <span className="font-numeric text-3xl font-extrabold" style={{ color: metricColor }}>
+          {positive ? '+' : ''}
+          {cs.metric_value.toFixed(1)}
+          {isPct ? '%' : ''}
+        </span>
+        <span className="pb-1 text-2xs text-ink-secondary">{cs.metric_label}</span>
+      </div>
     </div>
   );
 }
