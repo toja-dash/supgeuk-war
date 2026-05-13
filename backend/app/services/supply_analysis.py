@@ -63,8 +63,23 @@ def calc_defense_status(row: pd.Series) -> pd.Series:
     i_cost = row['avg_cost_20d_inst']
     f_cost = row['avg_cost_20d_frgn']
     
-    if pd.isna(i_cost) or pd.isna(f_cost) or pd.isna(close):
+    if pd.isna(close) or (pd.isna(i_cost) and pd.isna(f_cost)):
         return pd.Series({'defense_status': 'INSUFFICIENT_DATA', 'defense_status_inverted': False})
+
+    def single_subject_status(cost, line_touch_status):
+        if close > cost:
+            return 'SAFE'
+        if close >= cost * 0.95:
+            return line_touch_status
+        return 'BREAKDOWN'
+
+    if pd.isna(f_cost):
+        status = single_subject_status(i_cost, 'INST_LINE_TOUCH')
+        return pd.Series({'defense_status': status, 'defense_status_inverted': False})
+
+    if pd.isna(i_cost):
+        status = single_subject_status(f_cost, 'FRGN_LINE_TOUCH')
+        return pd.Series({'defense_status': status, 'defense_status_inverted': False})
         
     inverted = i_cost > f_cost
     
