@@ -9,6 +9,7 @@ import {
   type Time,
 } from 'lightweight-charts';
 import type { Candle } from '../../types/api';
+import { fmtInt, fmtPrice } from '../../lib/format';
 
 interface Props {
   candles: Candle[];
@@ -22,6 +23,7 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
 
   useEffect(() => {
     if (!ref.current) return;
+    const container = ref.current;
     const chartCandles = candles
       .map((c) => ({
         time: (c.date ?? c.time) as Time | undefined,
@@ -36,8 +38,8 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
           Boolean(c.time) && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0 && c.volume > 0
       );
 
-    const chart = createChart(ref.current, {
-      width: ref.current.clientWidth,
+    const chart = createChart(container, {
+      width: container.clientWidth,
       height: 400,
       layout: {
         background: { color: '#111827' },
@@ -112,6 +114,44 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
       }))
     );
 
+    const tooltip = document.createElement('div');
+    tooltip.className =
+      'pointer-events-none absolute z-10 hidden min-w-[170px] rounded-md border border-border bg-surface/95 px-3 py-2 text-2xs text-ink-secondary shadow-elevated';
+    container.style.position = 'relative';
+    container.appendChild(tooltip);
+
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.point || !param.time || param.point.x < 0 || param.point.y < 0) {
+        tooltip.classList.add('hidden');
+        return;
+      }
+
+      const candle = chartCandles.find((item) => item.time === param.time);
+      if (!candle) {
+        tooltip.classList.add('hidden');
+        return;
+      }
+
+      tooltip.innerHTML = `
+        <div class="mb-1 font-numeric text-xs font-semibold text-ink-primary">${formatTime(candle.time)}</div>
+        <div class="grid grid-cols-2 gap-x-3 gap-y-0.5">
+          <span>시가</span><span class="text-right font-numeric text-ink-primary">${fmtPrice(candle.open)}</span>
+          <span>고가</span><span class="text-right font-numeric text-num-up">${fmtPrice(candle.high)}</span>
+          <span>저가</span><span class="text-right font-numeric text-num-down">${fmtPrice(candle.low)}</span>
+          <span>종가</span><span class="text-right font-numeric text-ink-primary">${fmtPrice(candle.close)}</span>
+          <span>거래량</span><span class="text-right font-numeric text-ink-primary">${fmtInt(candle.volume)}</span>
+        </div>
+      `;
+
+      const tooltipWidth = tooltip.offsetWidth || 170;
+      const tooltipHeight = tooltip.offsetHeight || 132;
+      const x = param.point.x + 12;
+      const y = param.point.y + 12;
+      tooltip.style.left = `${Math.min(x, container.clientWidth - tooltipWidth - 8)}px`;
+      tooltip.style.top = `${Math.min(y, 400 - tooltipHeight - 8)}px`;
+      tooltip.classList.remove('hidden');
+    });
+
     chart.timeScale().fitContent();
 
     const ro = new ResizeObserver(() => {
@@ -127,4 +167,14 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
   }, [candles, instAvg, foreignAvg]);
 
   return <div ref={ref} className="h-[400px] w-full" />;
+}
+
+function formatTime(time: Time) {
+  if (typeof time === 'string') {
+    return time.replaceAll('-', '.');
+  }
+  if (typeof time === 'number') {
+    return new Date(time * 1000).toLocaleDateString('ko-KR');
+  }
+  return `${time.year}.${String(time.month).padStart(2, '0')}.${String(time.day).padStart(2, '0')}`;
 }

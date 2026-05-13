@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, RefreshIcon } from '../components/icons';
+import { ArrowLeft } from '../components/icons';
 import { Card } from '../components/ui/Card';
 import { TypeBadge, DefenseBadge, ChangePct } from '../components/ui/Badge';
 import { Disclaimer } from '../components/ui/Disclaimer';
@@ -27,7 +27,7 @@ const TYPE_COLOR: Record<SignalType, string> = {
   D: '#F59E0B',
 };
 
-const PERIODS = ['1M', '3M', '6M', '1Y'] as const;
+const PERIODS = ['1M', '3M'] as const;
 
 function isTradableCandle(candle: Candle) {
   return (
@@ -103,8 +103,6 @@ export default function DeepDive() {
   const PERIOD_LIMIT: Record<typeof period, number> = {
     '1M': 23,
     '3M': 65,
-    '6M': 130,
-    '1Y': 260,
   };
   const validCandles = allValid.slice(-PERIOD_LIMIT[period]);
 
@@ -153,8 +151,6 @@ export default function DeepDive() {
   const PERIOD_LABEL: Record<typeof period, string> = {
     '1M': '1M',
     '3M': '3M',
-    '6M': '6M',
-    '1Y': '1Y',
   };
   const instAvg = positiveOrNull(s.avg_cost_20d_inst);
   const foreignAvg = positiveOrNull(s.avg_cost_20d_frgn);
@@ -207,10 +203,6 @@ export default function DeepDive() {
               {s.deep_dive_line2 && <li>• {s.deep_dive_line2}</li>}
             </ul>
           </div>
-          <button className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-ink-secondary transition hover:text-ink-primary">
-            <RefreshIcon className="h-3.5 w-3.5" />
-            AI 진단 새로고침
-          </button>
         </div>
       </Card>
 
