@@ -1,25 +1,258 @@
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Card } from '../components/ui/Card';
+import { Select } from '../components/ui/Select';
+import { Slider } from '../components/ui/Slider';
+import { DefenseBadge, TypeBadge, ChangePct } from '../components/ui/Badge';
+import { Disclaimer } from '../components/ui/Disclaimer';
+import { SearchIcon } from '../components/icons';
+import { getOrMock } from '../api/withMock';
+import { mockScreener } from '../mocks';
+import type { ScreenerResponse, ScreenerItem, SignalType, DefenseStatus } from '../types/api';
+import { fmtPct, fmtPrice, fmtSfi } from '../lib/format';
+import { useFilterStore } from '../stores/filterStore';
+
+const TYPE_OPTIONS = [
+  { value: 'ALL', label: '전체 Type' },
+  { value: 'A', label: 'Type A · 쌍끌이 설거지' },
+  { value: 'B', label: 'Type B · 쌍끌이 매수' },
+  { value: 'C', label: 'Type C · 개미털기' },
+  { value: 'D', label: 'Type D · 기관 방어' },
+];
+
+const DEFENSE_OPTIONS = [
+  { value: 'ALL', label: '전체 상태' },
+  { value: 'SAFE', label: '안전 구역' },
+  { value: 'FRGN_LINE_TOUCH', label: '외인 방어선 도달' },
+  { value: 'INST_LINE_TOUCH', label: '기관 방어선 도달' },
+  { value: 'BREAKDOWN', label: '방어선 붕괴' },
+];
+
+type SortKey = keyof Pick<
+  ScreenerItem,
+  'name' | 'close' | 'change_pct' | 'sfi_inst' | 'sfi_frgn' | 'dominance_indi' | 'dominance_inst' | 'dominance_frgn'
+>;
 
 export default function Screener() {
   const navigate = useNavigate();
+  const filters = useFilterStore();
+  const [sortKey, setSortKey] = useState<SortKey>('change_pct');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const { data } = useQuery({
+    queryKey: [
+      'screener',
+      filters.type,
+      filters.defense,
+      filters.sfi_inst_min,
+      filters.sfi_frgn_min,
+    ],
+    queryFn: () =>
+      getOrMock<ScreenerResponse>(
+        `/screener?type=${filters.type}&defense=${filters.defense}&sfi_inst_min=${filters.sfi_inst_min}&sfi_frgn_min=${filters.sfi_frgn_min}`,
+        mockScreener
+      ),
+  });
+
+  const items = data?.items ?? mockScreener.items;
+
+  const filtered = useMemo(() => {
+    return items.filter((it) => {
+      if (filters.type !== 'ALL' && it.type !== filters.type) return false;
+      if (filters.defense !== 'ALL' && it.defense_status !== filters.defense) return false;
+      if (it.sfi_inst < filters.sfi_inst_min) return false;
+      if (it.sfi_frgn < filters.sfi_frgn_min) return false;
+      return true;
+    });
+  }, [items, filters]);
+
+  const sorted = useMemo(() => {
+    const out = [...filtered];
+    out.sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv))
+        : String(bv).localeCompare(String(av));
+    });
+    return out;
+  }, [filtered, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-bold">Screener</h1>
+      <Card title="🔍 조건 스크리닝 필터">
+        <div className="grid grid-cols-1 items-end gap-5 md:grid-cols-5">
+          <Select
+            label="Type 선택"
+            value={filters.type}
+            options={TYPE_OPTIONS}
+            onChange={filters.setType}
+          />
+          <Select
+            label="평단가 상태"
+            value={filters.defense}
+            options={DEFENSE_OPTIONS}
+            onChange={filters.setDefense}
+          />
+          <Slider
+            label="기관 SFI 하한선"
+            value={filters.sfi_inst_min}
+            min={-30}
+            max={30}
+            step={0.1}
+            accentColor="#06B6D4"
+            onChange={filters.setSfiInstMin}
+          />
+          <Slider
+            label="외국인 SFI 하한선"
+            value={filters.sfi_frgn_min}
+            min={-30}
+            max={30}
+            step={0.1}
+            accentColor="#A855F7"
+            onChange={filters.setSfiFrgnMin}
+          />
+          <button className="flex h-9 items-center justify-center gap-1.5 rounded-md bg-brand-primary px-4 text-sm font-semibold text-ink-primary transition hover:bg-brand-primary-hover">
+            <SearchIcon className="h-4 w-4" />
+            조건 검색
+          </button>
+        </div>
+      </Card>
 
-      <div className="rounded-lg border border-border-subtle bg-surface p-6">
-        <p className="mb-4 text-ink-secondary">조건 검색 결과 테이블</p>
-        <button
-          onClick={() => navigate('/deep-dive/005930')}
-          className="rounded bg-brand-primary px-4 py-2 font-medium text-ink-primary transition duration-fast hover:bg-brand-primary-hover"
-        >
-          삼성전자 Deep Dive 보기
-        </button>
-      </div>
+      <Card
+        title={`📋 조건 일치 종목 (${sorted.length}개)`}
+        subtitle="행 클릭 시 Deep Dive로 이동"
+        bodyClassName="p-0"
+      >
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-border-subtle text-2xs uppercase text-ink-secondary">
+                <Th onClick={() => toggleSort('name')} active={sortKey === 'name'} dir={sortDir} align="left">
+                  종목명
+                </Th>
+                <Th onClick={() => toggleSort('close')} active={sortKey === 'close'} dir={sortDir} align="right">
+                  현재가
+                </Th>
+                <Th align="center">TYPE</Th>
+                <Th onClick={() => toggleSort('sfi_inst')} active={sortKey === 'sfi_inst'} dir={sortDir} align="right">
+                  기관 SFI
+                </Th>
+                <Th onClick={() => toggleSort('sfi_frgn')} active={sortKey === 'sfi_frgn'} dir={sortDir} align="right">
+                  외인 SFI
+                </Th>
+                <Th onClick={() => toggleSort('dominance_indi')} active={sortKey === 'dominance_indi'} dir={sortDir} align="right">
+                  개인 주도력
+                </Th>
+                <Th onClick={() => toggleSort('dominance_inst')} active={sortKey === 'dominance_inst'} dir={sortDir} align="right">
+                  기관 주도력
+                </Th>
+                <Th onClick={() => toggleSort('dominance_frgn')} active={sortKey === 'dominance_frgn'} dir={sortDir} align="right">
+                  외인 주도력
+                </Th>
+                <Th align="center">상태</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((it) => (
+                <tr
+                  key={it.ticker}
+                  onClick={() => navigate(`/deep-dive/${it.ticker}`)}
+                  className="cursor-pointer border-b border-border-subtle/60 transition hover:bg-surface-2"
+                >
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-ink-primary">{it.name}</div>
+                    <div className="text-2xs text-ink-muted">
+                      {it.ticker} · {it.sector}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="font-numeric text-ink-primary">{fmtPrice(it.close)}</div>
+                    <ChangePct value={it.change_pct} />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <TypeBadge type={it.type as SignalType} />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <NumPct value={it.sfi_inst} />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <NumPct value={it.sfi_frgn} />
+                  </td>
+                  <td className="px-4 py-3 text-right font-numeric text-ink-secondary">
+                    {fmtPct(it.dominance_indi, 0)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-numeric text-ink-secondary">
+                    {fmtPct(it.dominance_inst, 0)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-numeric text-ink-secondary">
+                    {fmtPct(it.dominance_frgn, 0)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <DefenseBadge state={it.defense_status as DefenseStatus} />
+                  </td>
+                </tr>
+              ))}
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-muted">
+                    조건에 맞는 종목이 없습니다. 필터를 완화해 보세요.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-      <div className="mt-8 pb-4 text-xs text-ink-muted">
-        * 본 서비스의 수급 데이터와 분석 결과는 투자 참고용이며 실제 투자 결과에 대한 책임을 지지 않습니다.
-      </div>
+      <Disclaimer />
     </div>
   );
+}
+
+function Th({
+  children,
+  onClick,
+  active,
+  dir,
+  align,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
+  dir?: 'asc' | 'desc';
+  align: 'left' | 'right' | 'center';
+}) {
+  const alignCls = align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
+  return (
+    <th
+      onClick={onClick}
+      className={`px-4 py-2.5 font-medium tracking-wide ${alignCls} ${
+        onClick ? 'cursor-pointer select-none hover:text-ink-primary' : ''
+      } ${active ? 'text-ink-primary' : ''}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {active && <span className="text-2xs">{dir === 'asc' ? '▲' : '▼'}</span>}
+      </span>
+    </th>
+  );
+}
+
+function NumPct({ value }: { value: number }) {
+  const cls = value > 0 ? 'text-num-up' : value < 0 ? 'text-num-down' : 'text-num-flat';
+  return <span className={`font-numeric ${cls}`}>{fmtSfi(value)}</span>;
 }
