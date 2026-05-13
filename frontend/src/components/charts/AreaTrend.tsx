@@ -93,8 +93,8 @@ export function AreaTrend({
             fontSize: 12,
           }}
           labelStyle={{ color: '#F9FAFB' }}
-          formatter={(v: number) => [`${v.toLocaleString('ko-KR')}원`, '종가']}
-          labelFormatter={(l: string) => l.replaceAll('-', '.')}
+          formatter={(v) => [`${Number(v).toLocaleString('ko-KR')}원`, '종가']}
+          labelFormatter={(l) => String(l).replaceAll('-', '.')}
         />
         <Area
           type="monotone"

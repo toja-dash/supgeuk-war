@@ -65,7 +65,10 @@ export function DivergingBar({ rows }: { rows: Row[] }) {
                 fontSize: 12,
               }}
               labelStyle={{ color: '#F9FAFB' }}
-              formatter={(v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`}
+              formatter={(v) => {
+                const n = Number(v);
+                return `${n > 0 ? '+' : ''}${n.toFixed(1)}`;
+              }}
             />
             <ReferenceLine x={0} stroke="#4B5563" />
             <Bar dataKey="value" radius={[3, 3, 3, 3]}>

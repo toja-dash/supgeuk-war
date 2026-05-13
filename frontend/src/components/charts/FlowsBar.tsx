@@ -55,7 +55,10 @@ export function FlowsBar({ data, show }: Props) {
             fontSize: 12,
           }}
           labelStyle={{ color: '#F9FAFB' }}
-          formatter={(v: number) => `${v > 0 ? '+' : ''}${v}억원`}
+          formatter={(v) => {
+            const n = Number(v);
+            return `${n > 0 ? '+' : ''}${n}억원`;
+          }}
         />
         <Legend
           wrapperStyle={{ fontSize: 11, color: '#9CA3AF' }}
