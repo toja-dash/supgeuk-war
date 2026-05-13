@@ -2,7 +2,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -24,12 +23,15 @@ const COLORS = {
 };
 
 export function DivergingBar({ rows }: { rows: Row[] }) {
-  const data = rows.flatMap((r) => [
-    { market: r.label, subject: '개인', value: r.indi, fill: COLORS.indi },
-    { market: r.label, subject: '기관', value: r.inst, fill: COLORS.inst },
-    { market: r.label, subject: '외국인', value: r.frgn, fill: COLORS.frgn },
-  ]);
-  const maxAbs = Math.max(1, ...data.map((d) => Math.abs(d.value)));
+  // 기획서 §2.3: Y축 = 시장 라벨, 시장당 3개 그룹 바 (개인/기관/외국인)
+  const data = rows.map((r) => ({
+    market: r.label,
+    개인: r.indi,
+    기관: r.inst,
+    외국인: r.frgn,
+  }));
+  const values = rows.flatMap((r) => [r.indi, r.inst, r.frgn]);
+  const maxAbs = Math.max(1, ...values.map((value) => Math.abs(value)));
   const domainMax = Math.ceil(maxAbs * 1.05);
   const domain: [number, number] = [-domainMax, domainMax];
   const ticks = [-domainMax, 0, domainMax];
@@ -55,8 +57,8 @@ export function DivergingBar({ rows }: { rows: Row[] }) {
             />
             <YAxis
               type="category"
-              dataKey="subject"
-              tick={{ fill: '#9CA3AF', fontSize: 11 }}
+              dataKey="market"
+              tick={{ fill: '#F9FAFB', fontSize: 12, fontWeight: 600 }}
               width={56}
               axisLine={{ stroke: '#374151' }}
               tickLine={false}
@@ -77,11 +79,9 @@ export function DivergingBar({ rows }: { rows: Row[] }) {
               }}
             />
             <ReferenceLine x={0} stroke="#4B5563" />
-            <Bar dataKey="value" radius={[3, 3, 3, 3]}>
-              {data.map((d, i) => (
-                <Cell key={i} fill={d.fill} />
-              ))}
-            </Bar>
+            <Bar dataKey="개인" fill={COLORS.indi} radius={[3, 3, 3, 3]} />
+            <Bar dataKey="기관" fill={COLORS.inst} radius={[3, 3, 3, 3]} />
+            <Bar dataKey="외국인" fill={COLORS.frgn} radius={[3, 3, 3, 3]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
