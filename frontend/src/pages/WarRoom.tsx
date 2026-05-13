@@ -78,7 +78,9 @@ export default function WarRoom() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <div className="text-2xs uppercase tracking-wide text-ink-secondary">Market Brief</div>
-            <p className="text-base leading-relaxed text-ink-primary">{briefText}</p>
+            <p className="text-base leading-relaxed text-ink-primary">
+              {renderBrief(briefText)}
+            </p>
           </div>
           <button
             className="flex shrink-0 items-center gap-1.5 rounded-md bg-brand-primary px-3 py-2 text-xs font-semibold text-ink-primary transition hover:bg-brand-primary-hover"
@@ -178,12 +180,13 @@ export default function WarRoom() {
 
 function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
   const change = pick.change_pct;
+  // type_intensity = max(|sfi_inst|, |sfi_frgn|) — 이미 % 단위. SFI 일반 범위 0~30
   const intensity = pick.type_intensity ?? 0;
   const typeColor = TYPE_META[pick.type].color;
 
-  // 좌측 수치: 등락률이 있으면 등락률(색상 적용), 없으면 강도%로 대체
+  // 좌측 수치: 등락률이 있으면 등락률(색상 적용), 없으면 수급 강도% (SFI 절댓값 max)
   const hasChange = change !== undefined;
-  const numericText = hasChange ? fmtPct(change) : `${Math.round(intensity * 100)}%`;
+  const numericText = hasChange ? fmtPct(change) : `${intensity.toFixed(1)}%`;
   const numericCls = hasChange
     ? change > 0
       ? 'text-num-up'
@@ -191,6 +194,10 @@ function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
         ? 'text-num-down'
         : 'text-num-flat'
     : 'text-ink-secondary';
+
+  // 막대바 채움: SFI 30%를 만점으로 정규화 (실무 상 매우 강한 신호 = 약 30%)
+  const BAR_FULL_AT = 30;
+  const barRatio = Math.max(0, Math.min(1, intensity / BAR_FULL_AT));
 
   return (
     <li>
@@ -205,11 +212,11 @@ function PickRow({ pick, onClick }: { pick: TopPick; onClick: () => void }) {
         </span>
         <span
           className="block h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-surface-2"
-          title={`강도 ${Math.round(intensity * 100)}%`}
+          title={`수급 강도 ${intensity.toFixed(2)}% (SFI 절댓값 최대치)`}
         >
           <span
             className="block h-full rounded-full transition-all"
-            style={{ width: `${Math.max(0, Math.min(1, intensity)) * 100}%`, background: typeColor }}
+            style={{ width: `${barRatio * 100}%`, background: typeColor }}
           />
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition group-hover:translate-x-0.5 group-hover:text-ink-primary" />
@@ -282,4 +289,19 @@ function EmptyBox({ label, height = 160 }: { label: string; height?: number }) {
       {label}
     </div>
   );
+}
+
+// `**굵게**` 마크다운 마커를 인식해 <strong>으로 렌더링 (XSS 안전)
+function renderBrief(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} className="font-semibold text-ink-primary">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
 }

@@ -151,20 +151,15 @@ export function SectorBubble({ data, onSelect }: Props) {
 }
 
 function QuadrantLabels() {
+  // 각 사분면 내부 깊숙이 배치 + 배경 약간 처리 — 0축·그리드 라인과 겹쳐 보이지 않게
+  const base =
+    'absolute pointer-events-none rounded-sm bg-surface/70 px-1.5 py-0.5 text-[10px] leading-none text-ink-muted/80 backdrop-blur-[1px]';
   return (
     <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10">
-      <div className="absolute right-4 top-10 text-right text-2xs leading-tight text-ink-muted">
-        1사분면: 쌍끌이 매수
-      </div>
-      <div className="absolute left-20 top-10 text-left text-2xs leading-tight text-ink-muted">
-        2사분면: 기관 방어
-      </div>
-      <div className="absolute left-20 bottom-14 text-left text-2xs leading-tight text-ink-muted">
-        3사분면: 쌍끌이 매도
-      </div>
-      <div className="absolute right-4 bottom-14 text-right text-2xs leading-tight text-ink-muted">
-        4사분면: 외인 주도
-      </div>
+      <div className={`${base} right-6 top-6`}>1사분면 · 쌍끌이 매수</div>
+      <div className={`${base} left-24 top-6`}>2사분면 · 기관 방어</div>
+      <div className={`${base} left-24 bottom-12`}>3사분면 · 쌍끌이 매도</div>
+      <div className={`${base} right-6 bottom-12`}>4사분면 · 외인 주도</div>
     </div>
   );
 }

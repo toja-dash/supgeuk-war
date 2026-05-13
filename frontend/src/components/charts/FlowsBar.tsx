@@ -25,12 +25,16 @@ interface Props {
 export function FlowsBar({ data, show }: Props) {
   // 백엔드는 net_buy를 raw 원(KRW) 단위로 반환 → 억원으로 변환
   const toEokwon = (won: number) => won / 1e8;
-  const formatted = data.map((d) => ({
-    date: d.date.slice(5).replace('-', '/'),
-    개인: toEokwon(d.net_buy_indi),
-    기관: toEokwon(d.net_buy_inst),
-    외국인: toEokwon(d.net_buy_frgn),
-  }));
+  // 선택된 주체만 data에 포함시켜 Recharts가 그 범위로 Y축 자동 재스케일
+  const formatted = data.map((d) => {
+    const row: { date: string; 개인?: number; 기관?: number; 외국인?: number } = {
+      date: d.date.slice(5).replace('-', '/'),
+    };
+    if (show.indi) row['개인'] = toEokwon(d.net_buy_indi);
+    if (show.inst) row['기관'] = toEokwon(d.net_buy_inst);
+    if (show.frgn) row['외국인'] = toEokwon(d.net_buy_frgn);
+    return row;
+  });
   const fmtAxis = (v: number) =>
     Math.abs(v) >= 10000
       ? `${Math.round(v / 1000)}천억`
