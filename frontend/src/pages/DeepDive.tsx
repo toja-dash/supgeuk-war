@@ -444,15 +444,11 @@ export default function DeepDive() {
                     <div className="col-span-4 text-right text-2xs">
                       <div className="text-ink-secondary">
                         5일 후{' '}
-                        <span className={p.return_5d >= 0 ? 'text-num-up' : 'text-num-down'}>
-                          {fmtPct(p.return_5d)}
-                        </span>
+                        <ReturnText value={p.return_5d} />
                       </div>
                       <div className="text-ink-secondary">
                         20일 후{' '}
-                        <span className={p.return_20d >= 0 ? 'text-num-up' : 'text-num-down'}>
-                          {fmtPct(p.return_20d)}
-                        </span>
+                        <ReturnText value={p.return_20d} />
                       </div>
                     </div>
                   </li>
@@ -477,6 +473,18 @@ function PriceRow({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-xs text-ink-secondary">{label}</span>
       <span className="font-numeric text-sm text-ink-primary">{value}</span>
     </div>
+  );
+}
+
+function ReturnText({ value }: { value: number | null }) {
+  if (value === null) {
+    return <span className="text-brand-accent">-</span>;
+  }
+
+  return (
+    <span className={value >= 0 ? 'text-num-up' : 'text-num-down'}>
+      {fmtPct(value)}
+    </span>
   );
 }
 

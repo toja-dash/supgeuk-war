@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { StatCard } from '../components/ui/StatCard';
 import { Disclaimer } from '../components/ui/Disclaimer';
@@ -31,6 +32,7 @@ const EMPTY_SUMMARY: ArchiveSummaryItem = {
 
 export default function Archive() {
   const [activeType, setActiveType] = useState<SignalType>('B');
+  const navigate = useNavigate();
 
   const { data: summary } = useQuery({
     queryKey: ['archive', 'summary'],
@@ -110,7 +112,12 @@ export default function Archive() {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           {[0, 1, 2].map((i) => (
             highlightItems[i] ? (
-              <CaseStudyCard key={highlightItems[i].ticker + highlightItems[i].date} item={highlightItems[i]} accent={activeMeta.color} />
+              <CaseStudyCard
+                key={highlightItems[i].ticker + highlightItems[i].date}
+                item={highlightItems[i]}
+                accent={activeMeta.color}
+                onClick={() => navigate(`/deep-dive/${highlightItems[i].ticker}`)}
+              />
             ) : (
               <CaseStudyPlaceholder key={i} accent={activeMeta.color} />
             )
@@ -135,7 +142,11 @@ export default function Archive() {
             </thead>
             <tbody>
               {items.map((row, i) => (
-                <tr key={i} className="border-b border-border-subtle/60 hover:bg-surface-2">
+                <tr
+                  key={i}
+                  onClick={() => navigate(`/deep-dive/${row.ticker}`)}
+                  className="cursor-pointer border-b border-border-subtle/60 transition hover:bg-surface-2"
+                >
                   <td className="px-4 py-3 font-numeric text-ink-secondary">{fmtDate(row.date)}</td>
                   <td className="px-4 py-3 font-semibold text-ink-primary">{row.name}</td>
                   <td className="px-4 py-3 text-ink-secondary">{row.sector}</td>
@@ -170,12 +181,24 @@ function ReturnCell({ value }: { value: number | null }) {
   return <td className={`px-4 py-3 text-right font-numeric ${colorClass}`}>{fmtPct(value)}</td>;
 }
 
-function CaseStudyCard({ item, accent }: { item: ArchiveHighlight; accent: string }) {
+function CaseStudyCard({
+  item,
+  accent,
+  onClick,
+}: {
+  item: ArchiveHighlight;
+  accent: string;
+  onClick: () => void;
+}) {
   const positive = item.return_20d >= 0;
   const metricColor = positive ? '#EF4444' : '#3B82F6';
 
   return (
-    <div className="relative flex min-h-[210px] flex-col overflow-hidden rounded-lg border border-border-subtle bg-surface p-6">
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative flex min-h-[210px] flex-col overflow-hidden rounded-lg border border-border-subtle bg-surface p-6 text-left transition hover:border-brand-accent/60 hover:bg-surface-2"
+    >
       <span
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px"
@@ -204,7 +227,7 @@ function CaseStudyCard({ item, accent }: { item: ArchiveHighlight; accent: strin
         </span>
         <span className="pb-1 text-2xs text-ink-secondary">20거래일 후</span>
       </div>
-    </div>
+    </button>
   );
 }
 

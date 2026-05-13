@@ -5,7 +5,7 @@ export const fmtInt = (v: number | null | undefined) =>
   v === null || v === undefined ? '-' : nfInt.format(v);
 
 export const fmtPrice = (v: number | null | undefined) =>
-  v === null || v === undefined ? '-' : `${nfInt.format(v)}원`;
+  v === null || v === undefined ? '-' : `${nfInt.format(Math.round(v))}원`;
 
 export const fmtPct = (v: number | null | undefined, digits = 2) => {
   if (v === null || v === undefined) return '-';

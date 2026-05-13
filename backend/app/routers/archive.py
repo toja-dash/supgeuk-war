@@ -10,6 +10,7 @@ router = APIRouter()
 
 SIGNAL_TYPES = ("A", "B", "C", "D")
 ARCHIVE_LOOKBACK_DAYS = 90
+RETURN_ABS_LIMIT = 100
 
 
 def _to_float(value):
@@ -55,9 +56,19 @@ async def get_summary(date: Optional[date] = Query(None), db: AsyncSession = Dep
                     i.date,
                     i.ticker,
                     r.close as entry_close,
-                    r5.close as close_5d,
-                    r20.close as close_20d
+                    case
+                      when r5.close is not null
+                       and abs(((r5.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
+                      then r5.close
+                    end as close_5d,
+                    case
+                      when r20.close is not null
+                       and abs(((r20.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
+                      then r20.close
+                    end as close_20d
                 from market_indicators i
+                join stock_master s
+                  on i.ticker = s.ticker
                 join market_raw_data r
                   on r.date = i.date and r.ticker = i.ticker
                 left join lateral (
@@ -100,7 +111,7 @@ async def get_summary(date: Optional[date] = Query(None), db: AsyncSession = Dep
             group by type
             """
         ),
-        {"start_date": start_date, "latest_date": latest_date},
+        {"start_date": start_date, "latest_date": latest_date, "return_abs_limit": RETURN_ABS_LIMIT},
     )
 
     data = {
@@ -151,21 +162,40 @@ async def get_cases(
     start_date = latest_date - timedelta(days=ARCHIVE_LOOKBACK_DAYS) if latest_date else None
     signal_type = type if type in SIGNAL_TYPES else "B"
 
-    stmt = (
-        select(MarketIndicators, StockMaster)
-        .join(StockMaster, MarketIndicators.ticker == StockMaster.ticker)
-        .where(MarketIndicators.type == signal_type)
-    )
-    if start_date is not None:
-        stmt = stmt.where(MarketIndicators.date >= start_date)
-    
-    # Count total
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total_res = await db.execute(count_stmt)
-    total = total_res.scalar_one_or_none() or 0
-    
-    # Paginate
     offset = (page - 1) * size
+    params = {
+        "signal_type": signal_type,
+        "start_date": start_date,
+        "offset": offset,
+        "size": size,
+        "return_abs_limit": RETURN_ABS_LIMIT,
+    }
+    total_res = await db.execute(
+        text(
+            """
+            select count(*)
+            from market_indicators i
+            join stock_master s on i.ticker = s.ticker
+            join market_raw_data r on r.date = i.date and r.ticker = i.ticker
+            join lateral (
+                select r2.close
+                from market_raw_data r2
+                where r2.ticker = i.ticker
+                  and r2.date > i.date
+                  and r2.close > 0
+                order by r2.date asc
+                offset 19 limit 1
+            ) r20 on true
+            where i.type = :signal_type
+              and i.date >= :start_date
+              and r.close > 0
+              and abs(((r20.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
+            """
+        ),
+        params,
+    )
+    total = total_res.scalar_one_or_none() or 0
+
     res = await db.execute(
         text(
             """
@@ -180,15 +210,17 @@ async def get_cases(
                 i.sfi_frgn,
                 case
                   when r.close > 0 and r5.close is not null
+                   and abs(((r5.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
                   then ((r5.close - r.close)::numeric / r.close) * 100
                 end as return_5d,
                 case
                   when r.close > 0 and r20.close is not null
+                   and abs(((r20.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
                   then ((r20.close - r.close)::numeric / r.close) * 100
                 end as return_20d
             from market_indicators i
             join stock_master s on i.ticker = s.ticker
-            left join market_raw_data r on r.date = i.date and r.ticker = i.ticker
+            join market_raw_data r on r.date = i.date and r.ticker = i.ticker
             left join lateral (
                 select r2.close
                 from market_raw_data r2
@@ -198,7 +230,7 @@ async def get_cases(
                 order by r2.date asc
                 offset 4 limit 1
             ) r5 on true
-            left join lateral (
+            join lateral (
                 select r2.close
                 from market_raw_data r2
                 where r2.ticker = i.ticker
@@ -208,18 +240,15 @@ async def get_cases(
                 offset 19 limit 1
             ) r20 on true
             where i.type = :signal_type
-              and (:start_date is null or i.date >= :start_date)
+              and i.date >= :start_date
+              and r.close > 0
+              and abs(((r20.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
             order by i.date desc
             offset :offset
             limit :size
             """
         ),
-        {
-            "signal_type": signal_type,
-            "start_date": start_date,
-            "offset": offset,
-            "size": size,
-        },
+        params,
     )
     rows = res.all()
     
@@ -303,6 +332,8 @@ async def get_highlights(
                   and i.date >= :start_date
                   and i.date <= :latest_date
                   and r.close > 0
+                  and abs(((r5.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
+                  and abs(((r20.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
             )
             select *
             from realized
@@ -314,6 +345,7 @@ async def get_highlights(
             "signal_type": signal_type,
             "start_date": start_date,
             "latest_date": latest_date,
+            "return_abs_limit": RETURN_ABS_LIMIT,
             "size": size,
         },
     )
