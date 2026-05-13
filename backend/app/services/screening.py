@@ -55,7 +55,7 @@ def generate_market_brief(df: pd.DataFrame) -> dict:
     m_f_total = (m_f_kospi + m_f_kosdaq) / 2
     
     # 섹터 1위
-    sector_grouped = df_valid.groupby('sector').apply(
+    sector_grouped = df_valid.groupby('sector')[['sfi_inst', 'sfi_frgn', 'trade_value']].apply(
         lambda x: pd.Series({
             'sfi_inst': calc_weighted_sfi(x, 'inst'),
             'sfi_frgn': calc_weighted_sfi(x, 'frgn')

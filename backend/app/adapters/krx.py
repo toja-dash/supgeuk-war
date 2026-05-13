@@ -144,6 +144,53 @@ def _fetch_daily_from_official_api(target_date: date) -> pd.DataFrame:
     return _attach_investor_flow(pd.concat(frames, ignore_index=True), target_date)
 
 
+def _fetch_daily_from_pykrx(target_date: date) -> pd.DataFrame:
+    ymd = target_date.strftime("%Y%m%d")
+    frames = []
+
+    for market in OFFICIAL_ENDPOINTS:
+        df = stock.get_market_ohlcv_by_ticker(ymd, market=market)
+        if df.empty:
+            continue
+
+        df = df.reset_index()
+        ticker_col = df.columns[0]
+        df = df.rename(
+            columns={
+                ticker_col: "ticker",
+                "시가": "open",
+                "고가": "high",
+                "저가": "low",
+                "종가": "close",
+                "거래량": "volume",
+                "거래대금": "trade_value",
+            }
+        )
+
+        required = ["ticker", "open", "high", "low", "close", "volume", "trade_value"]
+        missing = [col for col in required if col not in df.columns]
+        if missing:
+            raise ValueError(f"pykrx OHLCV response missing columns: {missing}")
+
+        df = df[required]
+        df["ticker"] = df["ticker"].astype(str).str.zfill(6)
+        df["date"] = target_date
+        for col in ["open", "high", "low", "close", "volume", "trade_value"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+        df["net_buy_indi"] = 0
+        df["net_buy_inst"] = 0
+        df["net_buy_frgn"] = 0
+        df["net_qty_inst"] = 0
+        df["net_qty_frgn"] = 0
+        frames.append(df)
+
+    if not frames:
+        return pd.DataFrame()
+
+    return _attach_investor_flow(pd.concat(frames, ignore_index=True), target_date)
+
+
 def _fetch_daily_from_fdr_listing(target_date: date) -> pd.DataFrame:
     df = fdr.StockListing("KRX")
     if df.empty:
@@ -183,7 +230,18 @@ def _fetch_daily_from_fdr_listing(target_date: date) -> pd.DataFrame:
 
 def fetch_daily(target_date: date) -> pd.DataFrame:
     try:
-        return _fetch_daily_from_official_api(target_date)
+        df = _fetch_daily_from_official_api(target_date)
+        if df.empty:
+            raise RuntimeError(f"KRX Open API returned no rows for {target_date}")
+        return df
     except Exception as exc:
         print(f"Failed to fetch KRX Open API daily data for {target_date}: {exc}")
+
+    try:
+        df = _fetch_daily_from_pykrx(target_date)
+        if df.empty:
+            raise RuntimeError(f"pykrx returned no rows for {target_date}")
+        return df
+    except Exception as exc:
+        print(f"Failed to fetch pykrx daily data for {target_date}: {exc}")
         return _fetch_daily_from_fdr_listing(target_date)
