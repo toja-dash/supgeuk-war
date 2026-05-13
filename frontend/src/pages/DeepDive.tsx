@@ -27,7 +27,7 @@ const TYPE_COLOR: Record<SignalType, string> = {
   D: '#F59E0B',
 };
 
-const PERIODS = ['1M', '3M', '6M', '1Y'] as const;
+const PERIODS = ['1M', '3M'] as const;
 
 function isTradableCandle(candle: Candle) {
   return (
@@ -103,8 +103,6 @@ export default function DeepDive() {
   const PERIOD_LIMIT: Record<typeof period, number> = {
     '1M': 23,
     '3M': 65,
-    '6M': 130,
-    '1Y': 260,
   };
   const validCandles = allValid.slice(-PERIOD_LIMIT[period]);
 
@@ -153,8 +151,6 @@ export default function DeepDive() {
   const PERIOD_LABEL: Record<typeof period, string> = {
     '1M': '1M',
     '3M': '3M',
-    '6M': '6M',
-    '1Y': '1Y',
   };
   const instAvg = positiveOrNull(s.avg_cost_20d_inst);
   const foreignAvg = positiveOrNull(s.avg_cost_20d_frgn);
