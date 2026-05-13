@@ -2,11 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import market, screener, stock, archive
 from app.scheduler import scheduler, setup_scheduler
+from app.bootstrap import schedule_bootstrap_demo_data
 import contextlib
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_scheduler()
+    schedule_bootstrap_demo_data()
     yield
     scheduler.shutdown()
 
