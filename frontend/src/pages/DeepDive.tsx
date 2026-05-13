@@ -68,7 +68,7 @@ export default function DeepDive() {
   });
 
   const s = stock ?? mockStock(ticker ?? '005930');
-  const c = candles ?? mockCandles;
+  const c = candles?.length ? candles : mockCandles;
   const f = flows ?? mockFlows;
   const ma = maEvents ?? mockMaEvents;
   const sim = patterns ?? mockSimilarPatterns;
@@ -80,7 +80,7 @@ export default function DeepDive() {
   const accentColor = TYPE_COLOR[s.type];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-5">
       {/* Row 1 — 종목 헤더 */}
       <div className="flex flex-wrap items-end gap-4 border-b border-border-subtle pb-4">
         <div className="flex items-end gap-3">
@@ -130,6 +130,14 @@ export default function DeepDive() {
         </div>
       </Card>
 
+      {/* SFI 요약 */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <SfiSummaryCard label="기관 SFI" value={s.sfi_inst} color="#06B6D4" />
+        <SfiSummaryCard label="외국인 SFI" value={s.sfi_frgn} color="#A855F7" />
+        <SfiSummaryCard label="20일 기관 평단" value={s.avg_cost_20d_inst} color="#06B6D4" isPrice />
+        <SfiSummaryCard label="20일 외인 평단" value={s.avg_cost_20d_frgn} color="#A855F7" isPrice />
+      </div>
+
       {/* Row 3 — 가격 차트 + 방어선 ladder */}
       <Card
         title={chartMode === 'candle' ? '📈 일별 시세 (캔들차트)' : '📈 가격 추이 (그라데이션)'}
@@ -169,8 +177,8 @@ export default function DeepDive() {
           </div>
         }
       >
-        <div className="grid grid-cols-12 gap-5">
-          <div className="col-span-12 xl:col-span-9">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="min-w-0">
             {chartMode === 'candle' ? (
               <CandlestickChart
                 candles={c}
@@ -191,8 +199,8 @@ export default function DeepDive() {
               <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(s.avg_cost_20d_frgn)}`} />
             </div>
           </div>
-          <div className="col-span-12 xl:col-span-3">
-            <div className="rounded-md border border-border-subtle bg-surface-2/30 p-4">
+          <div className="min-w-0">
+            <div className="h-full rounded-md border border-border-subtle bg-surface-2/30 p-4">
               <div className="mb-3 text-2xs uppercase tracking-wide text-ink-muted">
                 평단 방어선 ladder
               </div>
@@ -207,8 +215,8 @@ export default function DeepDive() {
       </Card>
 
       {/* Row 4 — 시세 패널 / 7일 수급 */}
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 xl:col-span-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(360px,0.8fr)_minmax(0,1.2fr)]">
+        <div className="min-w-0">
           <Card
             title="💹 시세"
             action={
@@ -256,7 +264,7 @@ export default function DeepDive() {
           </Card>
         </div>
 
-        <div className="col-span-12 xl:col-span-7">
+        <div className="min-w-0">
           <Card
             title="📊 최근 7일 수급 (순매수)"
             subtitle="단위: 억원"
@@ -289,8 +297,8 @@ export default function DeepDive() {
       </div>
 
       {/* Row 5 — MA 맥점 / 유사 패턴 */}
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 xl:col-span-6">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <div className="min-w-0">
           <Card title="🔍 주요 이동평균선 맥점" subtitle="5 / 20 / 60 / 120">
             <ul className="flex flex-col divide-y divide-border-subtle">
               {ma.map((ev, i) => (
@@ -316,7 +324,7 @@ export default function DeepDive() {
           </Card>
         </div>
 
-        <div className="col-span-12 xl:col-span-6">
+        <div className="min-w-0">
           <Card title="📚 과거 패턴 유사도 Top 3" subtitle="현재 수급 패턴과 유사한 과거 구간">
             <ul className="flex flex-col divide-y divide-border-subtle">
               {sim.map((p, i) => (
@@ -350,14 +358,6 @@ export default function DeepDive() {
             <p className="mt-3 text-2xs text-ink-muted">※ 과거 통계는 미래 수익을 보장하지 않습니다.</p>
           </Card>
         </div>
-      </div>
-
-      {/* SFI 요약 */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <SfiSummaryCard label="기관 SFI" value={s.sfi_inst} color="#06B6D4" />
-        <SfiSummaryCard label="외국인 SFI" value={s.sfi_frgn} color="#A855F7" />
-        <SfiSummaryCard label="20일 기관 평단" value={s.avg_cost_20d_inst} color="#06B6D4" isPrice />
-        <SfiSummaryCard label="20일 외인 평단" value={s.avg_cost_20d_frgn} color="#A855F7" isPrice />
       </div>
 
       <Disclaimer />
