@@ -29,6 +29,20 @@ const TYPE_COLOR: Record<SignalType, string> = {
 
 const PERIODS = ['1M', '3M', '6M', '1Y'] as const;
 
+function isTradableCandle(candle: Candle) {
+  return (
+    candle.open > 0 &&
+    candle.high > 0 &&
+    candle.low > 0 &&
+    candle.close > 0 &&
+    candle.volume > 0
+  );
+}
+
+function positiveOrNull(value: number | null) {
+  return value != null && value > 0 ? value : null;
+}
+
 export default function DeepDive() {
   const { ticker } = useParams();
   const navigate = useNavigate();
@@ -83,19 +97,22 @@ export default function DeepDive() {
     );
   }
 
-  const c = candles ?? [];
+  const validCandles = (candles ?? []).filter(isTradableCandle);
   const f = flows ?? [];
   const ma = maEvents ?? [];
   const sim = patterns ?? [];
 
-  const today = c.length > 0 ? c[c.length - 1] : null;
-  const yest = c.length > 1 ? c[c.length - 2] : null;
-  const yearHigh = c.length > 0 ? Math.max(...c.map((x) => x.high)) : null;
-  const yearLow = c.length > 0 ? Math.min(...c.map((x) => x.low)) : null;
+  const today = validCandles[validCandles.length - 1];
+  const yest = validCandles[validCandles.length - 2];
+  const yearHigh = validCandles.length ? Math.max(...validCandles.map((x) => x.high)) : null;
+  const yearLow = validCandles.length ? Math.min(...validCandles.map((x) => x.low)) : null;
+  const instAvg = positiveOrNull(s.avg_cost_20d_inst);
+  const foreignAvg = positiveOrNull(s.avg_cost_20d_frgn);
+  const hasSignalData = s.defense_status !== 'INSUFFICIENT_DATA';
   const accentColor = TYPE_COLOR[s.type];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-5">
       {/* Row 1 — 종목 헤더 */}
       <div className="flex flex-wrap items-end gap-4 border-b border-border-subtle pb-4">
         <div className="flex items-end gap-3">
@@ -147,6 +164,14 @@ export default function DeepDive() {
         </div>
       </Card>
 
+      {/* SFI 요약 */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <SfiSummaryCard label="기관 SFI" value={hasSignalData ? s.sfi_inst : null} color="#06B6D4" />
+        <SfiSummaryCard label="외국인 SFI" value={hasSignalData ? s.sfi_frgn : null} color="#A855F7" />
+        <SfiSummaryCard label="20일 기관 평단" value={instAvg} color="#06B6D4" isPrice />
+        <SfiSummaryCard label="20일 외인 평단" value={foreignAvg} color="#A855F7" isPrice />
+      </div>
+
       {/* Row 3 — 가격 차트 + 방어선 ladder */}
       <Card
         title={chartMode === 'candle' ? '📈 일별 시세 (캔들차트)' : '📈 가격 추이 (그라데이션)'}
@@ -186,37 +211,37 @@ export default function DeepDive() {
           </div>
         }
       >
-        <div className="grid grid-cols-12 gap-5">
-          <div className="col-span-12 xl:col-span-9">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="min-w-0">
             {chartMode === 'candle' ? (
               <CandlestickChart
-                candles={c}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                candles={validCandles}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
               />
             ) : (
               <AreaTrend
-                candles={c}
+                candles={validCandles}
                 color={accentColor}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
                 height={400}
               />
             )}
             <div className="mt-3 flex items-center justify-center gap-6 text-2xs text-ink-secondary">
-              <LegendDash color="#06B6D4" label={`기관 평단 ${fmtPrice(s.avg_cost_20d_inst)}`} />
-              <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(s.avg_cost_20d_frgn)}`} />
+              <LegendDash color="#06B6D4" label={`기관 평단 ${fmtPrice(instAvg)}`} />
+              <LegendDash color="#A855F7" label={`외인 평단 ${fmtPrice(foreignAvg)}`} />
             </div>
           </div>
-          <div className="col-span-12 xl:col-span-3">
-            <div className="rounded-md border border-border-subtle bg-surface-2/30 p-4">
+          <div className="min-w-0">
+            <div className="h-full rounded-md border border-border-subtle bg-surface-2/30 p-4">
               <div className="mb-3 text-2xs uppercase tracking-wide text-ink-muted">
                 평단 방어선 ladder
               </div>
               <DefenseLadder
                 currentPrice={s.close}
-                instAvg={s.avg_cost_20d_inst}
-                foreignAvg={s.avg_cost_20d_frgn}
+                instAvg={instAvg}
+                foreignAvg={foreignAvg}
               />
             </div>
           </div>
@@ -224,8 +249,8 @@ export default function DeepDive() {
       </Card>
 
       {/* Row 4 — 시세 패널 / 7일 수급 */}
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 xl:col-span-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(360px,0.8fr)_minmax(0,1.2fr)]">
+        <div className="min-w-0">
           <Card
             title="💹 시세"
             action={
@@ -246,38 +271,34 @@ export default function DeepDive() {
               </div>
             }
           >
-            {today ? (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                <PriceRow label="1일 최저" value={fmtPrice(today.low)} />
-                <PriceRow label="1년 최저" value={fmtPrice(yearLow)} />
-                <PriceRow label="1일 최고" value={fmtPrice(today.high)} />
-                <PriceRow label="1년 최고" value={fmtPrice(yearHigh)} />
-                <PriceRow label="시작가" value={fmtPrice(today.open)} />
-                <PriceRow label="종가" value={fmtPrice(today.close)} />
-                <PriceRow label="거래량" value={`${fmtInt(today.volume)}주`} />
-                <PriceRow
-                  label="거래대금"
-                  value={`${fmtInt(Math.round((today.close * today.volume) / 1e8))}억`}
-                />
-                {yest && (
-                  <>
-                    <PriceRow label="전일 종가" value={fmtPrice(yest.close)} />
-                    <PriceRow
-                      label="전일 대비"
-                      value={
-                        <ChangePct value={+(((today.close - yest.close) / yest.close) * 100).toFixed(2)} />
-                      }
-                    />
-                  </>
-                )}
-              </div>
-            ) : (
-              <EmptyBox label="시세 패널 데이터가 없습니다" height={180} />
-            )}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <PriceRow label="1일 최저" value={fmtPrice(today?.low ?? null)} />
+              <PriceRow label="1년 최저" value={fmtPrice(yearLow)} />
+              <PriceRow label="1일 최고" value={fmtPrice(today?.high ?? null)} />
+              <PriceRow label="1년 최고" value={fmtPrice(yearHigh)} />
+              <PriceRow label="시작가" value={fmtPrice(today?.open ?? null)} />
+              <PriceRow label="종가" value={fmtPrice(today?.close ?? null)} />
+              <PriceRow label="거래량" value={today ? `${fmtInt(today.volume)}주` : '-'} />
+              <PriceRow
+                label="거래대금"
+                value={today ? `${fmtInt(Math.round((today.close * today.volume) / 1e8))}억` : '-'}
+              />
+              {yest && today && (
+                <>
+                  <PriceRow label="전일 종가" value={fmtPrice(yest.close)} />
+                  <PriceRow
+                    label="전일 대비"
+                    value={
+                      <ChangePct value={+(((today.close - yest.close) / yest.close) * 100).toFixed(2)} />
+                    }
+                  />
+                </>
+              )}
+            </div>
           </Card>
         </div>
 
-        <div className="col-span-12 xl:col-span-7">
+        <div className="min-w-0">
           <Card
             title="📊 최근 7일 수급 (순매수)"
             subtitle="단위: 억원"
@@ -310,8 +331,8 @@ export default function DeepDive() {
       </div>
 
       {/* Row 5 — MA 맥점 / 유사 패턴 */}
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 xl:col-span-6">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <div className="min-w-0">
           <Card title="🔍 주요 이동평균선 맥점" subtitle="5 / 20 / 60 / 120">
             {ma.length > 0 ? (
               <ul className="flex flex-col divide-y divide-border-subtle">
@@ -341,7 +362,7 @@ export default function DeepDive() {
           </Card>
         </div>
 
-        <div className="col-span-12 xl:col-span-6">
+        <div className="min-w-0">
           <Card title="📚 과거 패턴 유사도 Top 3" subtitle="현재 수급 패턴과 유사한 과거 구간">
             {sim.length > 0 ? (
               <ul className="flex flex-col divide-y divide-border-subtle">
@@ -385,14 +406,6 @@ export default function DeepDive() {
             <p className="mt-3 text-2xs text-ink-muted">※ 과거 통계는 미래 수익을 보장하지 않습니다.</p>
           </Card>
         </div>
-      </div>
-
-      {/* SFI 요약 */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <SfiSummaryCard label="기관 SFI" value={s.sfi_inst} color="#06B6D4" />
-        <SfiSummaryCard label="외국인 SFI" value={s.sfi_frgn} color="#A855F7" />
-        <SfiSummaryCard label="20일 기관 평단" value={s.avg_cost_20d_inst} color="#06B6D4" isPrice />
-        <SfiSummaryCard label="20일 외인 평단" value={s.avg_cost_20d_frgn} color="#A855F7" isPrice />
       </div>
 
       <Disclaimer />

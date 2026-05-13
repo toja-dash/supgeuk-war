@@ -72,7 +72,7 @@ export default function Archive() {
       {/* Row 2 — 통계 카드 3개 */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
-          label="과거 3년 총 발생 횟수"
+          label="과거 1년 총 발생 횟수"
           value={fmtInt(sum.total_count)}
           sub="건"
           borderColor={activeMeta.color}

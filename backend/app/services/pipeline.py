@@ -76,8 +76,19 @@ async def fetch_and_upsert_raw_data(target_date: date):
     
     # Filter out invalid
     df = df[(df['trade_value'] >= 0) & (df['volume'] >= 0) & (df['close'] > 0)]
+    before_dedup = len(df)
+    df = df.drop_duplicates(subset=["date", "ticker"], keep="last")
+    if len(df) != before_dedup:
+        logger.warning(
+            "Dropped %s duplicate raw rows for %s before upsert.",
+            before_dedup - len(df),
+            target_date,
+        )
     
     records = clean_nan(df.to_dict(orient="records"))
+    if not records:
+        logger.warning(f"No valid raw data remains for {target_date}. Skipping.")
+        return
     
     async with AsyncSessionLocal() as session:
         for batch in chunks(records, 1000):

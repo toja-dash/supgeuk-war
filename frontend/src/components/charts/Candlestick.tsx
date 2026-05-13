@@ -22,6 +22,20 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
 
   useEffect(() => {
     if (!ref.current) return;
+    const chartCandles = candles
+      .map((c) => ({
+        time: (c.date ?? c.time) as Time | undefined,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        volume: c.volume,
+      }))
+      .filter(
+        (c): c is typeof c & { time: Time } =>
+          Boolean(c.time) && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0 && c.volume > 0
+      );
+
     const chart = createChart(ref.current, {
       width: ref.current.clientWidth,
       height: 400,
@@ -49,8 +63,8 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
       wickDownColor: '#3B82F6',
     });
     candleSeries.setData(
-      candles.map((c) => ({
-        time: c.date as Time,
+      chartCandles.map((c) => ({
+        time: c.time,
         open: c.open,
         high: c.high,
         low: c.low,
@@ -87,8 +101,8 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
       scaleMargins: { top: 0.8, bottom: 0 },
     });
     volumeSeries.setData(
-      candles.map((c) => ({
-        time: c.date as Time,
+      chartCandles.map((c) => ({
+        time: c.time,
         value: c.volume,
         color: c.close >= c.open ? 'rgba(239,68,68,0.5)' : 'rgba(59,130,246,0.5)',
       }))
