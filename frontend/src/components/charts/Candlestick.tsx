@@ -51,6 +51,10 @@ export function CandlestickChart({ candles, instAvg, foreignAvg }: Props) {
       crosshair: { mode: CrosshairMode.Normal },
       timeScale: { borderColor: '#374151', timeVisible: false },
       rightPriceScale: { borderColor: '#374151' },
+      localization: {
+        locale: 'ko-KR',
+        dateFormat: 'yyyy/MM/dd',
+      },
     });
     chartRef.current = chart;
 

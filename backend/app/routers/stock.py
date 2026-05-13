@@ -65,10 +65,14 @@ async def get_stock_info(ticker: str, date: Optional[date] = Query(None), db: As
         "deep_dive_line2": line2
     }, "status": "ok", "message": None}
 
+_PERIOD_DAYS = {"1M": 31, "3M": 92, "6M": 183, "1Y": 366}
+
+
 @router.get("/{ticker}/candles")
 async def get_candles(ticker: str, period: str = Query("3M"), db: AsyncSession = Depends(get_db)):
     t_date = latest_trading_day(datetime.now())
-    start_date = t_date - timedelta(days=90) # roughly 3 months
+    span_days = _PERIOD_DAYS.get(period.upper(), 92)
+    start_date = t_date - timedelta(days=span_days)
     
     stmt = (
         select(MarketRawData)

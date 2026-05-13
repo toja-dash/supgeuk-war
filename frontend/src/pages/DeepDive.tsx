@@ -97,15 +97,53 @@ export default function DeepDive() {
     );
   }
 
-  const validCandles = (candles ?? []).filter(isTradableCandle);
+  const allValid = (candles ?? []).filter(isTradableCandle);
+
+  // period에 따라 표시할 캔들 수 제한 (백엔드가 더 긴 기간을 보낼 때도 안전)
+  const PERIOD_LIMIT: Record<typeof period, number> = {
+    '1M': 23,
+    '3M': 65,
+    '6M': 130,
+    '1Y': 260,
+  };
+  const validCandles = allValid.slice(-PERIOD_LIMIT[period]);
+
   const f = flows ?? [];
   const ma = maEvents ?? [];
   const sim = patterns ?? [];
 
-  const today = validCandles[validCandles.length - 1];
-  const yest = validCandles[validCandles.length - 2];
-  const yearHigh = validCandles.length ? Math.max(...validCandles.map((x) => x.high)) : null;
-  const yearLow = validCandles.length ? Math.min(...validCandles.map((x) => x.low)) : null;
+  // 일봉/주봉 토글에 따른 시세 패널 데이터 — 주봉은 최근 5거래일 집계
+  const weekCandles = allValid.slice(-5);
+  const panelToday: typeof allValid[number] | undefined =
+    candleSourceToggle === 'weekly' && weekCandles.length
+      ? {
+          date: weekCandles[weekCandles.length - 1].date,
+          open: weekCandles[0].open,
+          high: Math.max(...weekCandles.map((x) => x.high)),
+          low: Math.min(...weekCandles.map((x) => x.low)),
+          close: weekCandles[weekCandles.length - 1].close,
+          volume: weekCandles.reduce((sum, x) => sum + x.volume, 0),
+        }
+      : allValid[allValid.length - 1];
+  const panelPrev: typeof allValid[number] | undefined =
+    candleSourceToggle === 'weekly' && allValid.length >= 10
+      ? (() => {
+          const prevWeek = allValid.slice(-10, -5);
+          return {
+            date: prevWeek[prevWeek.length - 1].date,
+            open: prevWeek[0].open,
+            high: Math.max(...prevWeek.map((x) => x.high)),
+            low: Math.min(...prevWeek.map((x) => x.low)),
+            close: prevWeek[prevWeek.length - 1].close,
+            volume: prevWeek.reduce((sum, x) => sum + x.volume, 0),
+          };
+        })()
+      : allValid[allValid.length - 2];
+
+  const today = panelToday;
+  const yest = panelPrev;
+  const yearHigh = allValid.length ? Math.max(...allValid.map((x) => x.high)) : null;
+  const yearLow = allValid.length ? Math.min(...allValid.map((x) => x.low)) : null;
   const instAvg = positiveOrNull(s.avg_cost_20d_inst);
   const foreignAvg = positiveOrNull(s.avg_cost_20d_frgn);
   const hasSignalData = s.defense_status !== 'INSUFFICIENT_DATA';
@@ -272,28 +310,36 @@ export default function DeepDive() {
             }
           >
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <PriceRow label="1일 최저" value={fmtPrice(today?.low ?? null)} />
-              <PriceRow label="1년 최저" value={fmtPrice(yearLow)} />
-              <PriceRow label="1일 최고" value={fmtPrice(today?.high ?? null)} />
-              <PriceRow label="1년 최고" value={fmtPrice(yearHigh)} />
-              <PriceRow label="시작가" value={fmtPrice(today?.open ?? null)} />
-              <PriceRow label="종가" value={fmtPrice(today?.close ?? null)} />
-              <PriceRow label="거래량" value={today ? `${fmtInt(today.volume)}주` : '-'} />
-              <PriceRow
-                label="거래대금"
-                value={today ? `${fmtInt(Math.round((today.close * today.volume) / 1e8))}억` : '-'}
-              />
-              {yest && today && (
-                <>
-                  <PriceRow label="전일 종가" value={fmtPrice(yest.close)} />
-                  <PriceRow
-                    label="전일 대비"
-                    value={
-                      <ChangePct value={+(((today.close - yest.close) / yest.close) * 100).toFixed(2)} />
-                    }
-                  />
-                </>
-              )}
+              {(() => {
+                const unitLabel = candleSourceToggle === 'weekly' ? '1주' : '1일';
+                const prevLabel = candleSourceToggle === 'weekly' ? '전주' : '전일';
+                return (
+                  <>
+                    <PriceRow label={`${unitLabel} 최저`} value={fmtPrice(today?.low ?? null)} />
+                    <PriceRow label="1년 최저" value={fmtPrice(yearLow)} />
+                    <PriceRow label={`${unitLabel} 최고`} value={fmtPrice(today?.high ?? null)} />
+                    <PriceRow label="1년 최고" value={fmtPrice(yearHigh)} />
+                    <PriceRow label="시작가" value={fmtPrice(today?.open ?? null)} />
+                    <PriceRow label="종가" value={fmtPrice(today?.close ?? null)} />
+                    <PriceRow label="거래량" value={today ? `${fmtInt(today.volume)}주` : '-'} />
+                    <PriceRow
+                      label="거래대금"
+                      value={today ? `${fmtInt(Math.round((today.close * today.volume) / 1e8))}억` : '-'}
+                    />
+                    {yest && today && (
+                      <>
+                        <PriceRow label={`${prevLabel} 종가`} value={fmtPrice(yest.close)} />
+                        <PriceRow
+                          label={`${prevLabel} 대비`}
+                          value={
+                            <ChangePct value={+(((today.close - yest.close) / yest.close) * 100).toFixed(2)} />
+                          }
+                        />
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </Card>
         </div>
