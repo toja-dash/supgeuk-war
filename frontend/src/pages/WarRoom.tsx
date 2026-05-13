@@ -84,28 +84,18 @@ export default function WarRoom() {
     <div className="flex flex-col gap-6">
       {/* Row 1 — Market Brief Banner */}
       <Card accentColor={briefAccent}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="text-2xs uppercase tracking-wide text-ink-secondary">Market Brief</div>
-            <p className="text-base leading-relaxed text-ink-primary">
-              {renderBrief(briefText)}
-            </p>
-          </div>
-          <button
-            className="flex shrink-0 items-center gap-1.5 rounded-md bg-brand-primary px-3 py-2 text-xs font-semibold text-ink-primary transition hover:bg-brand-primary-hover"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M12 2l1.6 4.8L18 8.4l-4.4 1.6L12 14.8 10.4 10 6 8.4l4.4-1.6L12 2zM18 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
-            </svg>
-            AI 시장 브리핑
-          </button>
+        <div className="flex flex-col gap-1">
+          <div className="text-2xs uppercase tracking-wide text-ink-secondary">Market Brief</div>
+          <p className="text-base leading-relaxed text-ink-primary">
+            {renderBrief(briefText)}
+          </p>
         </div>
       </Card>
 
       {/* Row 2 — 3-column grid */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 items-start gap-6">
         <div className="col-span-12 xl:col-span-3">
-          <Card title="📊 시장 3파전 주도력" className="h-full">
+          <Card title="📊 시장 3파전 주도력">
             <DivergingBar
               rows={[
                 { label: '코스피', indi: dom.kospi.indi, inst: dom.kospi.inst, frgn: dom.kospi.frgn },
@@ -119,11 +109,12 @@ export default function WarRoom() {
           <Card
             title="🎯 전술 레이더 맵"
             subtitle="버블 크기 = 거래대금 · 색 = 수급 주도력"
-            className="h-full"
           >
             <SectorBubble
               data={sectorData}
-              onSelect={(sector) => navigate(`/screener?sector=${encodeURIComponent(sector)}`)}
+              onSelect={(sector, type) =>
+                navigate(`/screener?sector=${encodeURIComponent(sector)}&type=${type}`)
+              }
             />
           </Card>
         </div>

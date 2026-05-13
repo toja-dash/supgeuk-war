@@ -6,7 +6,6 @@ import { Select } from '../components/ui/Select';
 import { Slider } from '../components/ui/Slider';
 import { DefenseBadge, TypeBadge, ChangePct } from '../components/ui/Badge';
 import { Disclaimer } from '../components/ui/Disclaimer';
-import { SearchIcon } from '../components/icons';
 import { apiClient } from '../api/client';
 import type { ScreenerResponse, ScreenerItem, SignalType, DefenseStatus } from '../types/api';
 import { fmtPct, fmtPrice, fmtSfi } from '../lib/format';
@@ -39,6 +38,9 @@ export default function Screener() {
   const filters = useFilterStore();
   const [sortKey, setSortKey] = useState<SortKey>('change_pct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [selectedSector, setSelectedSector] = useState<string>(
+    () => searchParams.get('sector') ?? 'ALL',
+  );
 
   useEffect(() => {
     const next = {
@@ -56,6 +58,9 @@ export default function Screener() {
     ) {
       filters.setFilters(next);
     }
+
+    const urlSector = searchParams.get('sector') ?? 'ALL';
+    setSelectedSector((prev) => (prev !== urlSector ? urlSector : prev));
   }, [searchParams]);
 
   const updateFilter = (key: 'type' | 'defense' | 'sfi_inst_min' | 'sfi_frgn_min', value: string | number) => {
@@ -89,10 +94,24 @@ export default function Screener() {
   });
 
   const items = data?.items ?? [];
-  const total = data?.total ?? 0;
+
+  const sectorOptions = useMemo(() => {
+    const sectors = Array.from(new Set(items.map((it) => it.sector).filter(Boolean))).sort();
+    return [
+      { value: 'ALL', label: '전체 업종' },
+      ...sectors.map((s) => ({ value: s, label: s })),
+    ];
+  }, [items]);
+
+  const filteredItems = useMemo(() =>
+    selectedSector === 'ALL' ? items : items.filter((it) => it.sector === selectedSector),
+    [items, selectedSector],
+  );
+
+  const total = filteredItems.length;
 
   const sorted = useMemo(() => {
-    const out = [...items];
+    const out = [...filteredItems];
     out.sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
@@ -104,7 +123,7 @@ export default function Screener() {
         : String(bv).localeCompare(String(av));
     });
     return out;
-  }, [items, sortKey, sortDir]);
+  }, [filteredItems, sortKey, sortDir]);
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -149,10 +168,12 @@ export default function Screener() {
             accentColor="#A855F7"
             onChange={(value) => updateFilter('sfi_frgn_min', value)}
           />
-          <button className="flex h-9 items-center justify-center gap-1.5 rounded-md bg-brand-primary px-4 text-sm font-semibold text-ink-primary transition hover:bg-brand-primary-hover">
-            <SearchIcon className="h-4 w-4" />
-            조건 검색
-          </button>
+          <Select
+            label="업종 선택"
+            value={selectedSector}
+            options={sectorOptions}
+            onChange={setSelectedSector}
+          />
         </div>
       </Card>
 
