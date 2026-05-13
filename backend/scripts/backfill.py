@@ -1,6 +1,10 @@
 import asyncio
 import argparse
+import os
+import sys
 from datetime import date, timedelta
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 async def backfill(start_date: date, end_date: date):
     print(f"Starting backfill from {start_date} to {end_date}")
