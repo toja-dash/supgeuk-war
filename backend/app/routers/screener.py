@@ -80,9 +80,9 @@ async def get_screener(
             "type_intensity": round(float(ind.type_intensity or 0), 2),
             "sfi_inst": round(float(ind.sfi_inst or 0), 2),
             "sfi_frgn": round(float(ind.sfi_frgn or 0), 2),
-            "dominance_indi": round(float(ind.dominance_indi or 0), 2),
-            "dominance_inst": round(float(ind.dominance_inst or 0), 2),
-            "dominance_frgn": round(float(ind.dominance_frgn or 0), 2),
+            "dominance_indi": round(float(ind.dominance_indi or 0) * 100, 2),
+            "dominance_inst": round(float(ind.dominance_inst or 0) * 100, 2),
+            "dominance_frgn": round(float(ind.dominance_frgn or 0) * 100, 2),
             "defense_status": ind.defense_status,
             "priority_score": round(float(ind.priority_score or 0), 2)
         })
