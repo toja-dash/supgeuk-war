@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+asyncpg
+redis
+apscheduler
+pandas
+numpy
+pykrx==1.0.51
+finance-datareader
+pydantic-settings
+setuptools<81
