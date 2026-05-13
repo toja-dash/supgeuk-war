@@ -25,11 +25,27 @@ export function AreaTrend({
   foreignAvg,
   height = 380,
 }: Props) {
-  const data = candles.map((c) => ({ date: c.date, value: c.close }));
-  const lows = candles.map((c) => c.low);
-  const highs = candles.map((c) => c.high);
-  const yMin = Math.min(...lows, instAvg ?? Infinity, foreignAvg ?? Infinity) * 0.995;
-  const yMax = Math.max(...highs, instAvg ?? -Infinity, foreignAvg ?? -Infinity) * 1.005;
+  const data = candles
+    .map((c) => ({ date: c.date ?? c.time, value: c.close, low: c.low, high: c.high }))
+    .filter(
+      (c): c is typeof c & { date: string } =>
+        Boolean(c.date) && c.value > 0 && c.low > 0 && c.high > 0
+    );
+  const lows = data.map((c) => c.low);
+  const highs = data.map((c) => c.high);
+  const referencePrices = [instAvg, foreignAvg].filter(
+    (v): v is number => typeof v === 'number' && v > 0
+  );
+  const yMin = Math.min(...lows, ...referencePrices) * 0.995;
+  const yMax = Math.max(...highs, ...referencePrices) * 1.005;
+
+  if (data.length === 0) {
+    return (
+      <div className="flex items-center justify-center text-sm text-ink-muted" style={{ height }}>
+        유효한 거래 캔들 데이터가 없습니다.
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -57,7 +73,7 @@ export function AreaTrend({
           width={60}
           tickFormatter={(v: number) => v.toLocaleString('ko-KR')}
         />
-        {instAvg != null && (
+        {instAvg != null && instAvg > 0 && (
           <ReferenceLine
             y={instAvg}
             stroke="#06B6D4"
@@ -71,7 +87,7 @@ export function AreaTrend({
             }}
           />
         )}
-        {foreignAvg != null && (
+        {foreignAvg != null && foreignAvg > 0 && (
           <ReferenceLine
             y={foreignAvg}
             stroke="#A855F7"

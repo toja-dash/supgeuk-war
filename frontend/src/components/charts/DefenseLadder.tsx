@@ -11,7 +11,7 @@ interface Props {
  * 각 구간을 안전(녹)·경계(노)·위험(빨) 그라데이션으로 표현.
  */
 export function DefenseLadder({ currentPrice, instAvg, foreignAvg }: Props) {
-  if (instAvg == null || foreignAvg == null) {
+  if (currentPrice <= 0 || instAvg == null || foreignAvg == null || instAvg <= 0 || foreignAvg <= 0) {
     return (
       <div className="rounded-md border border-border-subtle bg-surface-2/40 p-4 text-2xs text-ink-muted">
         평단 데이터가 부족하여 방어선 시각화를 표시할 수 없습니다.
