@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.models.base import Base
 import app.models.market  # Ensure models are imported so metadata is populated
+from app.database_url import get_database_url
 
 config = context.config
 
@@ -22,7 +23,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 def get_url():
-    return os.environ.get("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5433/supgeuk_war")
+    return get_database_url()
 
 def run_migrations_offline() -> None:
     url = get_url()

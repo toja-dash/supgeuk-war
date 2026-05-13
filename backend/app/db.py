@@ -1,10 +1,7 @@
-import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from app.models.base import Base
+from app.database_url import get_database_url
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5433/supgeuk_war")
-
-engine = create_async_engine(DATABASE_URL, echo=False)
+engine = create_async_engine(get_database_url(), echo=False)
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
