@@ -21,10 +21,10 @@ const TYPE_COLORS: Record<SignalType, string> = {
 };
 
 const TYPE_LABEL: Record<SignalType, string> = {
-  A: '동반 분산 매도 (Q3)',
-  B: '동반 매집 구간 (Q1)',
-  C: '외인 단독 유입 (Q4)',
-  D: '기관 방어 우위 (Q2)',
+  A: '동반 분산 매도 (Type A)',
+  B: '동반 매집 구간 (Type B)',
+  C: '외인 단독 유입 (Type C)',
+  D: '기관 방어 우위 (Type D)',
 };
 
 interface Props {
@@ -158,19 +158,19 @@ function QuadrantLabels() {
     <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10">
       {/* 2사분면 (좌상) — 상단 중앙 */}
       <div className={base} style={{ top: '10%', left: '30%', transform: 'translateX(-50%)' }}>
-        Q2 · 기관 방어 우위
+        Type D · 기관 방어 우위
       </div>
       {/* 1사분면 (우상) — 상단 중앙 */}
       <div className={base} style={{ top: '10%', left: '75%', transform: 'translateX(-50%)' }}>
-        Q1 · 동반 매집 구간
+        Type B · 동반 매집 구간
       </div>
       {/* 3사분면 (좌하) — 하단 중앙 */}
       <div className={base} style={{ bottom: '22%', left: '30%', transform: 'translateX(-50%)' }}>
-        Q3 · 동반 분산 매도
+        Type A · 동반 분산 매도
       </div>
       {/* 4사분면 (우하) — 하단 중앙 */}
       <div className={base} style={{ bottom: '22%', left: '75%', transform: 'translateX(-50%)' }}>
-        Q4 · 외인 단독 유입
+        Type C · 외인 단독 유입
       </div>
     </div>
   );
