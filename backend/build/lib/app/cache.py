@@ -14,9 +14,3 @@ async def get_cache(key: str):
     if data:
         return json.loads(data)
     return None
-
-async def clear_cache_pattern(pattern: str) -> int:
-    deleted = 0
-    async for key in redis_client.scan_iter(match=pattern):
-        deleted += await redis_client.delete(key)
-    return deleted

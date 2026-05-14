@@ -11,26 +11,19 @@ router = APIRouter()
 SIGNAL_TYPES = ("A", "B", "C", "D")
 
 
-async def get_target_date(d: Optional[date], db: AsyncSession) -> date:
+async def get_target_date(d: Optional[date], db: AsyncSession) -> Optional[date]:
     if d:
         return d
-    from app.models.market import MarketSummary, MarketRawData
-    for model in (MarketSummary, MarketIndicators, MarketRawData):
-        result = await db.execute(select(func.max(model.date)))
-        latest_date = result.scalar_one_or_none()
-        if latest_date:
-            return latest_date
-    from app.utils.trading_day import latest_trading_day
-    from datetime import datetime
-    return latest_trading_day(datetime.now())
+    result = await db.execute(select(func.max(MarketIndicators.date)))
+    return result.scalar_one_or_none()
 
 @router.get("")
 async def get_screener(
     date: Optional[date] = Query(None),
     type: Optional[str] = Query("ALL"),
     defense: Optional[str] = Query("ALL"),
-    sfi_inst_min: float = Query(-100.0),
-    sfi_frgn_min: float = Query(-100.0),
+    sfi_inst_min: float = Query(-30.0),
+    sfi_frgn_min: float = Query(-30.0),
     page: int = Query(1),
     size: int = Query(1000),
     db: AsyncSession = Depends(get_db)

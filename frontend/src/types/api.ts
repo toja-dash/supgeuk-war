@@ -15,7 +15,7 @@ export interface MarketBrief {
   kosdaq_close: number;
   kosdaq_change_pct: number;
   usdkrw_close: number;
-  status_badge: 'live' | 'pending' | 'confirmed';
+  status_badge: 'live' | 'pending' | 'confirmed' | 'empty';
 }
 
 export interface MarketDominance {

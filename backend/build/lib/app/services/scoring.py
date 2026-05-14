@@ -46,27 +46,27 @@ def generate_insights(row: pd.Series) -> dict:
     f_cost = row.get('avg_cost_20d_frgn')
     
     signal_card_text = ""
-    if t == 'A': signal_card_text = "동반 분산 매도 + 평단가 붕괴"
-    elif t == 'B': signal_card_text = "동반 매집 구간"
-    elif t == 'C': signal_card_text = "외인 단독 유입"
-    elif t == 'D': signal_card_text = "기관 방어 우위"
+    if t == 'A': signal_card_text = "동반 분산 매도 (Type A)"
+    elif t == 'B': signal_card_text = "동반 매집 구간 (Type B)"
+    elif t == 'C': signal_card_text = "외인 단독 유입 (Type C)"
+    elif t == 'D': signal_card_text = "기관 방어 우위 (Type D)"
     
     headline = "⚪ 뚜렷한 수급 신호가 관찰되지 않습니다."
-    if t == 'A': headline = "🔴 동반 분산 매도 — 평단가 방어선이 무너졌습니다."
-    elif t == 'B': headline = "🟢 동반 매집 구간 — 기관과 외국인이 함께 매수 우위를 보입니다."
-    elif t == 'C': headline = "🟡 외인 단독 유입 — 외국인 매수와 기관 매도가 엇갈립니다."
-    elif t == 'D': headline = "🔵 기관 방어 우위 — 외인 매도 압력에도 기관이 받치고 있습니다."
+    if t == 'A': headline = "🔴 동반 분산 매도(Type A) — 큰손 이탈 및 평단가 붕괴가 확인됩니다."
+    elif t == 'B': headline = "🟢 동반 매집 구간(Type B) — 가장 신뢰도 높은 매수 강화 신호입니다."
+    elif t == 'C': headline = "🟡 외인 단독 유입(Type C) — 외인 매수세가 기관 매도 압력을 상쇄 중입니다."
+    elif t == 'D': headline = "🔵 기관 방어 우위(Type D) — 외인 매도에도 불구하고 기관이 지지선을 구축했습니다."
     
     q_label = ""
-    if quad == 'BOTH_BUY': q_label = "동반 매집 구간"
-    elif quad == 'INST_DEFENSE': q_label = "기관 방어 우위"
-    elif quad == 'BOTH_SELL': q_label = "동반 분산 매도"
-    elif quad == 'FRGN_LEAD': q_label = "외인 단독 유입"
+    if quad == 'BOTH_BUY': q_label = "동반 매집(Type B)"
+    elif quad == 'INST_DEFENSE': q_label = "기관 방어(Type D)"
+    elif quad == 'BOTH_SELL': q_label = "동반 분산(Type A)"
+    elif quad == 'FRGN_LEAD': q_label = "외인 단독(Type C)"
     
     sfi_i_str = f"{sfi_i:+.1f}%" if pd.notna(sfi_i) else "N/A"
     sfi_f_str = f"{sfi_f:+.1f}%" if pd.notna(sfi_f) else "N/A"
     
-    line1 = f"오늘 기관 SFI {sfi_i_str}, 외인 SFI {sfi_f_str}으로 {q_label} 흐름에 해당합니다."
+    line1 = f"오늘 기관 SFI {sfi_i_str}, 외인 SFI {sfi_f_str}으로 {q_label} 사분면에 위치합니다."
     
     line2 = ""
     if def_stat == 'SAFE':

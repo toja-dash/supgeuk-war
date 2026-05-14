@@ -152,13 +152,11 @@ async def get_signals(date: Optional[date] = Query(None), db: AsyncSession = Dep
     t_date = await get_target_date(date, db)
 
     # Count sync: apply TRADE_VALUE_FLOOR filter same as Market Brief
-    # Also join StockMaster to ensure consistency with Screener list
     stmt_count = (
         select(MarketIndicators.type, func.count(MarketIndicators.ticker))
         .join(MarketRawData, (MarketIndicators.ticker == MarketRawData.ticker) & (MarketIndicators.date == MarketRawData.date))
-        .join(StockMaster, MarketIndicators.ticker == StockMaster.ticker)
         .where(MarketIndicators.date == t_date)
-        .where(MarketIndicators.type.in_(['A', 'B', 'C', 'D']))
+        .where(MarketIndicators.type.isnot(None))
         .where(MarketRawData.trade_value >= TRADE_VALUE_FLOOR)
         .group_by(MarketIndicators.type)
     )
