@@ -158,7 +158,7 @@ async def get_signals(date: Optional[date] = Query(None), db: AsyncSession = Dep
         .join(MarketRawData, (MarketIndicators.ticker == MarketRawData.ticker) & (MarketIndicators.date == MarketRawData.date))
         .join(StockMaster, MarketIndicators.ticker == StockMaster.ticker)
         .where(MarketIndicators.date == t_date)
-        .where(MarketIndicators.type.isnot(None))
+        .where(MarketIndicators.type.in_(['A', 'B', 'C', 'D']))
         .where(MarketRawData.trade_value >= TRADE_VALUE_FLOOR)
         .group_by(MarketIndicators.type)
     )
