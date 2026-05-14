@@ -9,6 +9,7 @@ const STATUS_LABEL: Record<MarketBrief['status_badge'], { text: string; cls: str
   live: { text: 'LIVE 장중', cls: 'bg-status-live/20 text-status-live' },
   pending: { text: '잠정 (15:30)', cls: 'bg-status-pending/20 text-status-pending' },
   confirmed: { text: '확정 (18:00)', cls: 'bg-status-confirmed/20 text-status-confirmed' },
+  empty: { text: '데이터 없음', cls: 'bg-surface-2 text-ink-secondary' },
 };
 
 const nf = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
