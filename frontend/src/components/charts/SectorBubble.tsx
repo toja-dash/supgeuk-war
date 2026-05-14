@@ -21,10 +21,10 @@ const TYPE_COLORS: Record<SignalType, string> = {
 };
 
 const TYPE_LABEL: Record<SignalType, string> = {
-  A: '쌍끌이 설거지',
-  B: '쌍끌이 매수',
-  C: '개미털기',
-  D: '기관 방어',
+  A: '동반 분산 매도 (Q3)',
+  B: '동반 매집 구간 (Q1)',
+  C: '외인 단독 유입 (Q4)',
+  D: '기관 방어 우위 (Q2)',
 };
 
 interface Props {
@@ -52,7 +52,7 @@ export function SectorBubble({ data, onSelect }: Props) {
             type="number"
             dataKey="x"
             name="외국인 SFI"
-            domain={[-10, 10]}
+            domain={[-30, 30]}
             tick={{ fill: '#9CA3AF', fontSize: 11 }}
             axisLine={{ stroke: '#374151' }}
             tickLine={{ stroke: '#374151' }}
@@ -68,7 +68,7 @@ export function SectorBubble({ data, onSelect }: Props) {
             type="number"
             dataKey="y"
             name="기관 SFI"
-            domain={[-10, 10]}
+            domain={[-30, 30]}
             tick={{ fill: '#9CA3AF', fontSize: 11 }}
             axisLine={{ stroke: '#374151' }}
             tickLine={{ stroke: '#374151' }}
@@ -152,29 +152,25 @@ export function SectorBubble({ data, onSelect }: Props) {
 }
 
 function QuadrantLabels() {
-  // 각 사분면 상단(Q1/Q2) 또는 하단(Q3/Q4) 중앙에 배치
-  // - 좌측 절반 중앙: 컨테이너의 ~30% 위치 (YAxis 폭 ~60px 감안)
-  // - 우측 절반 중앙: 컨테이너의 ~75% 위치
-  // - 수직: 플롯 영역 상/하단 안쪽으로 8~14%
   const base =
     'absolute pointer-events-none whitespace-nowrap rounded-sm bg-surface/70 px-1.5 py-0.5 text-[10px] leading-none text-ink-muted/80 backdrop-blur-[1px]';
   return (
     <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10">
       {/* 2사분면 (좌상) — 상단 중앙 */}
       <div className={base} style={{ top: '10%', left: '30%', transform: 'translateX(-50%)' }}>
-        2사분면 · 기관 방어
+        Q2 · 기관 방어 우위
       </div>
       {/* 1사분면 (우상) — 상단 중앙 */}
       <div className={base} style={{ top: '10%', left: '75%', transform: 'translateX(-50%)' }}>
-        1사분면 · 쌍끌이 매수
+        Q1 · 동반 매집 구간
       </div>
-      {/* 3사분면 (좌하) — 하단 중앙. X축 라벨 영역 피해 안쪽으로 */}
+      {/* 3사분면 (좌하) — 하단 중앙 */}
       <div className={base} style={{ bottom: '22%', left: '30%', transform: 'translateX(-50%)' }}>
-        3사분면 · 쌍끌이 매도
+        Q3 · 동반 분산 매도
       </div>
       {/* 4사분면 (우하) — 하단 중앙 */}
       <div className={base} style={{ bottom: '22%', left: '75%', transform: 'translateX(-50%)' }}>
-        4사분면 · 외인 주도
+        Q4 · 외인 단독 유입
       </div>
     </div>
   );

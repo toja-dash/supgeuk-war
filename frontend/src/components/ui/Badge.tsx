@@ -7,9 +7,10 @@ const TYPE_CLASSES = {
 
 export function TypeBadge({ type }: { type: 'A' | 'B' | 'C' | 'D' | null | string }) {
   if (!type || !TYPE_CLASSES[type as keyof typeof TYPE_CLASSES]) return null;
+  const qMap: Record<string, string> = { A: 'Q3', B: 'Q1', C: 'Q4', D: 'Q2' };
   return (
     <span className={`inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-sm border px-2 text-xs font-semibold ${TYPE_CLASSES[type as keyof typeof TYPE_CLASSES]}`}>
-      Type {type}
+      {qMap[type] || `Type ${type}`}
     </span>
   );
 }

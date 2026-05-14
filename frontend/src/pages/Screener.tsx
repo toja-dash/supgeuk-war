@@ -12,11 +12,11 @@ import { fmtPct, fmtPrice, fmtSfi } from '../lib/format';
 import { useFilterStore } from '../stores/filterStore';
 
 const TYPE_OPTIONS = [
-  { value: 'ALL', label: '전체 Type' },
-  { value: 'A', label: 'Type A · 쌍끌이 설거지 (방어선 이탈)' },
-  { value: 'B', label: 'Type B · 쌍끌이 매수' },
-  { value: 'C', label: 'Type C · 개미털기' },
-  { value: 'D', label: 'Type D · 기관 방어' },
+  { value: 'ALL', label: '전체 사분면 (ALL)' },
+  { value: 'B', label: 'Q1 · 동반 매집 구간' },
+  { value: 'D', label: 'Q2 · 기관 방어 우위' },
+  { value: 'A', label: 'Q3 · 동반 분산 매도' },
+  { value: 'C', label: 'Q4 · 외인 단독 유입' },
 ];
 
 const DEFENSE_OPTIONS = [

@@ -19,17 +19,17 @@ import type {
 import { fmtPct } from '../lib/format';
 
 const TYPE_META: Record<SignalType, { label: string; sub: string; color: string }> = {
-  A: { label: 'Type A', sub: '쌍끌이 설거지 · 방어선 이탈', color: '#EF4444' },
-  B: { label: 'Type B', sub: '쌍끌이 매수', color: '#10B981' },
-  C: { label: 'Type C', sub: '개미털기', color: '#06B6D4' },
-  D: { label: 'Type D', sub: '기관 방어', color: '#F59E0B' },
+  A: { label: 'Q3', sub: '동반 분산 매도', color: '#EF4444' },
+  B: { label: 'Q1', sub: '동반 매집 구간', color: '#10B981' },
+  C: { label: 'Q4', sub: '외인 단독 유입', color: '#06B6D4' },
+  D: { label: 'Q2', sub: '기관 방어 우위', color: '#F59E0B' },
 };
 
 const PICK_LABEL: Record<SignalType, string> = {
-  A: 'Type A — 위험 경고',
-  B: 'Type B — 기회 포착',
-  C: 'Type C — 충돌 주의',
-  D: 'Type D — 전환 기대',
+  A: 'Q3 — 동반 분산 매도',
+  B: 'Q1 — 동반 매집 구간',
+  C: 'Q4 — 외인 단독 유입',
+  D: 'Q2 — 기관 방어 우위',
 };
 
 const EMPTY_DOMINANCE: MarketDominance = {
@@ -123,7 +123,7 @@ export default function WarRoom() {
         <div className="col-span-12 xl:col-span-3">
           <Card title="👁 오늘의 주목 종목" className="h-[390px]">
             <div className="scrollbar-thin flex max-h-[310px] flex-col gap-4 overflow-y-auto pr-2">
-              {(['A', 'B', 'C', 'D'] as const).map((type) => {
+              {(['B', 'D', 'A', 'C'] as const).map((type) => {
                 const meta = TYPE_META[type];
                 const list = picks[type] ?? [];
                 if (list.length === 0) return null;
@@ -160,7 +160,7 @@ export default function WarRoom() {
       <div>
         <div className="mb-3 text-sm font-semibold text-ink-secondary">⚡ 오늘의 시그널 요약</div>
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          {(['A', 'B', 'C', 'D'] as const).map((t) => (
+          {(['B', 'D', 'A', 'C'] as const).map((t) => (
             <SignalTypeCard
               key={t}
               label={TYPE_META[t].label}
