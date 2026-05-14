@@ -151,6 +151,8 @@ export interface ArchiveCase {
   ticker: string;
   name: string;
   sector: string;
+  type_intensity: number;
+  priority_score: number;
   sfi_inst: number;
   sfi_frgn: number;
   return_5d: number | null;

@@ -134,6 +134,7 @@ export default function Archive() {
                 <th className="px-4 py-2.5 text-left font-medium">발생일</th>
                 <th className="px-4 py-2.5 text-left font-medium">종목명</th>
                 <th className="px-4 py-2.5 text-left font-medium">섹터</th>
+                <th className="px-4 py-2.5 text-right font-medium">스코어</th>
                 <th className="px-4 py-2.5 text-right font-medium">기관 SFI</th>
                 <th className="px-4 py-2.5 text-right font-medium">외인 SFI</th>
                 <th className="px-4 py-2.5 text-right font-medium">5일 후</th>
@@ -150,6 +151,9 @@ export default function Archive() {
                   <td className="px-4 py-3 font-numeric text-ink-secondary">{fmtDate(row.date)}</td>
                   <td className="px-4 py-3 font-semibold text-ink-primary">{row.name}</td>
                   <td className="px-4 py-3 text-ink-secondary">{row.sector}</td>
+                  <td className="px-4 py-3 text-right font-numeric text-ink-primary">
+                    {row.priority_score.toFixed(1)}
+                  </td>
                   <td className="px-4 py-3 text-right font-numeric text-ink-primary">{fmtSfi(row.sfi_inst)}</td>
                   <td className="px-4 py-3 text-right font-numeric text-ink-primary">{fmtSfi(row.sfi_frgn)}</td>
                   <ReturnCell value={row.return_5d} />
@@ -158,7 +162,7 @@ export default function Archive() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-muted">
+                  <td colSpan={8} className="px-4 py-10 text-center text-sm text-ink-muted">
                     조회된 사례가 없습니다.
                   </td>
                 </tr>

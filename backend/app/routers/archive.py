@@ -243,7 +243,7 @@ async def get_cases(
               and i.date >= :start_date
               and r.close > 0
               and abs(((r20.close - r.close)::numeric / r.close) * 100) <= :return_abs_limit
-            order by i.date desc
+            order by i.priority_score desc nulls last, i.date desc
             offset :offset
             limit :size
             """
