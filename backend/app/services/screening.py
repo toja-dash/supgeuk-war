@@ -37,6 +37,8 @@ def apply_screening(df: pd.DataFrame) -> pd.DataFrame:
 
 def generate_market_brief(df: pd.DataFrame) -> dict:
     df_valid = df[df['trade_value'] >= TRADE_VALUE_FLOOR]
+    # Filter out stocks with missing market info (not in StockMaster) for consistency
+    df_valid = df_valid[df_valid['market'].notna()].copy()
     
     # 시장단위 SFI 가중평균 계산
     def calc_weighted_sfi(df_sub, subject):
