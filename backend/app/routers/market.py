@@ -74,14 +74,14 @@ async def get_dominance(date: Optional[date] = Query(None), db: AsyncSession = D
     return {
         "data": {
             "kospi": {
-                "indi": 0.0,
-                "inst": summary.market_sfi_inst_kospi or 0,
-                "frgn": summary.market_sfi_frgn_kospi or 0,
+                "indi": summary.market_dominance_indi_kospi or 0,
+                "inst": summary.market_dominance_inst_kospi or 0,
+                "frgn": summary.market_dominance_frgn_kospi or 0,
             },
             "kosdaq": {
-                "indi": 0.0,
-                "inst": summary.market_sfi_inst_kosdaq or 0,
-                "frgn": summary.market_sfi_frgn_kosdaq or 0,
+                "indi": summary.market_dominance_indi_kosdaq or 0,
+                "inst": summary.market_dominance_inst_kosdaq or 0,
+                "frgn": summary.market_dominance_frgn_kosdaq or 0,
             },
         },
         "status": "ok",
@@ -117,7 +117,6 @@ async def get_sectors(date: Optional[date] = Query(None), db: AsyncSession = Dep
               and i.type in ('A', 'B', 'C', 'D')
             group by coalesce(nullif(s.sector, ''), '기타')
             order by trade_value desc
-            limit 12
             """
         )
         ,
@@ -149,12 +148,16 @@ async def get_sectors(date: Optional[date] = Query(None), db: AsyncSession = Dep
 
 @router.get("/signals")
 async def get_signals(date: Optional[date] = Query(None), db: AsyncSession = Depends(get_db)):
+    from app.services.screening import TRADE_VALUE_FLOOR
     t_date = await get_target_date(date, db)
 
+    # Count sync: apply TRADE_VALUE_FLOOR filter same as Market Brief
     stmt_count = (
         select(MarketIndicators.type, func.count(MarketIndicators.ticker))
+        .join(MarketRawData, (MarketIndicators.ticker == MarketRawData.ticker) & (MarketIndicators.date == MarketRawData.date))
         .where(MarketIndicators.date == t_date)
         .where(MarketIndicators.type.isnot(None))
+        .where(MarketRawData.trade_value >= TRADE_VALUE_FLOOR)
         .group_by(MarketIndicators.type)
     )
     count_res = await db.execute(stmt_count)
@@ -165,8 +168,10 @@ async def get_signals(date: Optional[date] = Query(None), db: AsyncSession = Dep
         stmt = (
             select(MarketIndicators, StockMaster.name)
             .join(StockMaster, MarketIndicators.ticker == StockMaster.ticker)
+            .join(MarketRawData, (MarketIndicators.ticker == MarketRawData.ticker) & (MarketIndicators.date == MarketRawData.date))
             .where(MarketIndicators.date == t_date)
             .where(MarketIndicators.type == signal_type)
+            .where(MarketRawData.trade_value >= TRADE_VALUE_FLOOR)
             .order_by(desc(MarketIndicators.priority_score))
             .limit(5)
         )
