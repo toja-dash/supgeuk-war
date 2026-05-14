@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, text
+from sqlalchemy import select, desc, text, func
 from typing import Optional
 from datetime import date, timedelta
 from app.db import get_db
@@ -12,12 +12,21 @@ import pandas as pd
 
 router = APIRouter()
 
-def get_target_date(d: Optional[date]) -> date:
-    return d if d else latest_trading_day(datetime.now())
+async def get_target_date(d: Optional[date], db: AsyncSession) -> date:
+    if d:
+        return d
+
+    for model in (MarketIndicators, MarketRawData):
+        result = await db.execute(select(func.max(model.date)))
+        latest_date = result.scalar_one_or_none()
+        if latest_date:
+            return latest_date
+
+    return latest_trading_day(datetime.now())
 
 @router.get("/{ticker}")
 async def get_stock_info(ticker: str, date: Optional[date] = Query(None), db: AsyncSession = Depends(get_db)):
-    t_date = get_target_date(date)
+    t_date = await get_target_date(date, db)
     
     stmt = (
         select(MarketIndicators, StockMaster, MarketRawData)
@@ -187,7 +196,7 @@ async def get_ma_events(ticker: str, limit: int = Query(5), db: AsyncSession = D
 
 @router.get("/{ticker}/similar-patterns")
 async def get_similar_patterns(ticker: str, date: Optional[date] = Query(None), n: int = Query(3), db: AsyncSession = Depends(get_db)):
-    t_date = get_target_date(date)
+    t_date = await get_target_date(date, db)
     result = await db.execute(
         text(
             """
