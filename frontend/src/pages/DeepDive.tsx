@@ -380,38 +380,8 @@ export default function DeepDive() {
         </div>
       </div>
 
-      {/* Row 5 — MA 맥점 / 유사 패턴 */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <div className="min-w-0">
-          <Card title="🔍 주요 이동평균선 맥점" subtitle="5 / 20 / 60 / 120">
-            {ma.length > 0 ? (
-              <ul className="flex flex-col divide-y divide-border-subtle">
-                {ma.map((ev, i) => (
-                  <li key={i} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                    <span
-                      className={`mt-0.5 rounded-md px-2 py-0.5 text-2xs font-semibold ${
-                        ev.event_type === 'GOLDEN_CROSS'
-                          ? 'bg-signal-b-bg text-signal-b'
-                          : 'bg-signal-a-bg text-signal-a'
-                      }`}
-                    >
-                      {ev.event_type === 'GOLDEN_CROSS' ? '골든크로스' : '데드크로스'}
-                    </span>
-                    <div className="flex-grow">
-                      <div className="text-sm text-ink-primary">
-                        {fmtDate(ev.date)} · {fmtPrice(ev.short_value)} / {fmtPrice(ev.long_value)}
-                      </div>
-                      <div className="text-2xs text-ink-secondary">{ev.interpretation}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyBox label="이동평균선 이벤트 데이터가 없습니다" height={160} />
-            )}
-          </Card>
-        </div>
-
+      {/* Row 5 — 유사 패턴 / MA 맥점 */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(360px,0.8fr)_minmax(0,1.2fr)]">
         <div className="min-w-0">
           <Card title="📚 과거 패턴 유사도 Top 3" subtitle="현재 수급 패턴과 유사한 과거 구간">
             {sim.length > 0 ? (
@@ -450,6 +420,36 @@ export default function DeepDive() {
               <EmptyBox label="과거 유사 패턴 데이터가 없습니다" height={160} />
             )}
             <p className="mt-3 text-2xs text-ink-muted">※ 과거 통계는 미래 수익을 보장하지 않습니다.</p>
+          </Card>
+        </div>
+
+        <div className="min-w-0">
+          <Card title="🔍 주요 이동평균선 맥점" subtitle="5 / 20 / 60 / 120">
+            {ma.length > 0 ? (
+              <ul className="flex flex-col divide-y divide-border-subtle">
+                {ma.map((ev, i) => (
+                  <li key={i} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    <span
+                      className={`mt-0.5 rounded-md px-2 py-0.5 text-2xs font-semibold ${
+                        ev.event_type === 'GOLDEN_CROSS'
+                          ? 'bg-signal-b-bg text-signal-b'
+                          : 'bg-signal-a-bg text-signal-a'
+                      }`}
+                    >
+                      {ev.event_type === 'GOLDEN_CROSS' ? '골든크로스' : '데드크로스'}
+                    </span>
+                    <div className="flex-grow">
+                      <div className="text-sm text-ink-primary">
+                        {fmtDate(ev.date)} · {fmtPrice(ev.short_value)} / {fmtPrice(ev.long_value)}
+                      </div>
+                      <div className="text-2xs text-ink-secondary">{ev.interpretation}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyBox label="이동평균선 이벤트 데이터가 없습니다" height={160} />
+            )}
           </Card>
         </div>
       </div>
