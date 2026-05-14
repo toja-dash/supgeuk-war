@@ -40,7 +40,7 @@ const EMPTY_DOMINANCE: MarketDominance = {
 const EMPTY_PICKS: Record<SignalType, TopPick[]> = { A: [], B: [], C: [], D: [] };
 
 const TYPE_DESC: Record<SignalType, string> = {
-  A: '외국인과 기관의 동반 매도세가 집중되며, 주요 방어선 이탈 위험이 높은 주의 구간입니다.',
+  A: '외국인과 기관의 동반 분산 매도가 집중되며, 주요 방어선 이탈 위험이 높은 주의 구간입니다.',
   B: '외국인과 기관의 자금이 동시에 유입되며 강한 상승 시너지를 내는 매수 주도 구간입니다.',
   C: '기관의 매도세 속에서 외국인 자금이 단독으로 유입되며 수급 우위를 점하고 있는 구간입니다.',
   D: '외국인의 매도세에도 불구하고, 기관이 적극적으로 물량을 받아내며 주가를 방어하는 구간입니다.',

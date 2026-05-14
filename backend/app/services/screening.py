@@ -72,14 +72,14 @@ def generate_market_brief(df: pd.DataFrame) -> dict:
     
     # 1단 문장
     if m_i_total > 1.0 and m_f_total > 1.0:
-        brief = "오늘 시장은 **기관·외국인 쌍끌이 매수**로 강한 상승 동력이 형성됐습니다."
+        brief = "오늘 시장은 **기관·외국인 동반 매집**으로 강한 상승 동력이 형성됐습니다."
     elif m_f_total > 1.0 and m_i_total <= 1.0:
         sec = top_sector_frgn or "특정 섹터"
         brief = f"오늘 시장은 **외국인의 {sec} 집중 매수**로 상승 마감했습니다."
     elif m_i_total > 1.0 and m_f_total <= 1.0:
         brief = "오늘 시장은 **기관 단독 매수**로 방어전이 펼쳐졌습니다."
     elif m_i_total < -1.0 and m_f_total < -1.0:
-        brief = "오늘 시장은 **쌍끌이 매도**로 하락 압력을 받았습니다."
+        brief = "오늘 시장은 **동반 분산 매도**로 하락 압력을 받았습니다."
     elif m_f_total < -1.0 and m_i_total >= -1.0:
         brief = "오늘 시장은 **외국인 매도**가 지수를 끌어내렸습니다."
     else:
@@ -96,7 +96,7 @@ def generate_market_brief(df: pd.DataFrame) -> dict:
             
     # 3단 위험
     if count_type_a >= 30:
-        brief += f" ⚠️ Type A(쌍끌이 설거지) 종목이 **{count_type_a}개**로 집중 발생, 보유 종목의 평단가 방어선 점검을 권장합니다."
+        brief += f" ⚠️ Type A(동반 분산 매도) 종목이 **{count_type_a}개**로 집중 발생, 보유 종목의 평단가 방어선 점검을 권장합니다."
     elif count_type_a >= 10:
         brief += f" Type A 종목 {count_type_a}개에서 평단가 붕괴가 확인됩니다."
         
