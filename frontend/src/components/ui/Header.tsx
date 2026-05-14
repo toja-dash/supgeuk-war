@@ -34,7 +34,7 @@ export function Header() {
     <header className="sticky top-0 z-50 flex h-16 items-center gap-6 border-b border-border-subtle bg-surface px-6">
       <Link to="/" className="flex items-center gap-2 whitespace-nowrap">
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-primary" />
-        <span className="text-lg font-bold text-ink-primary">SUPGEUK WAR</span>
+        <span className="text-lg font-bold text-ink-primary">수급 전쟁</span>
       </Link>
 
       <nav className="flex h-full gap-1">
