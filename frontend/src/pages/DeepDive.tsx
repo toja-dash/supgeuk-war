@@ -292,8 +292,9 @@ export default function DeepDive() {
 
       {/* Row 4 — 시세 패널 / 7일 수급 */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(360px,0.8fr)_minmax(0,1.2fr)]">
-        <div className="min-w-0">
+        <div className="min-w-0 h-full">
           <Card
+            className="h-full"
             title="💹 시세"
             action={
               <div className="flex gap-1">
@@ -348,8 +349,9 @@ export default function DeepDive() {
           </Card>
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 h-full">
           <Card
+            className="h-full"
             title="📊 최근 7일 수급 (순매수)"
             subtitle="단위: 억원"
             action={
