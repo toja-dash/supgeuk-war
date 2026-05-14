@@ -15,10 +15,10 @@ import type {
 import { fmtDate, fmtInt, fmtPct, fmtSfi } from '../lib/format';
 
 const TYPES: Array<{ key: SignalType; label: string; sub: string; color: string }> = [
-  { key: 'B', label: 'Q1', sub: '동반 매집 구간', color: '#10B981' },
-  { key: 'D', label: 'Q2', sub: '기관 방어 우위', color: '#F59E0B' },
-  { key: 'A', label: 'Q3', sub: '동반 분산 매도', color: '#EF4444' },
-  { key: 'C', label: 'Q4', sub: '외인 단독 유입', color: '#06B6D4' },
+  { key: 'A', label: 'Type A', sub: '동반 분산 매도', color: '#EF4444' },
+  { key: 'B', label: 'Type B', sub: '동반 매집 구간', color: '#10B981' },
+  { key: 'C', label: 'Type C', sub: '외인 단독 유입', color: '#06B6D4' },
+  { key: 'D', label: 'Type D', sub: '기관 방어 우위', color: '#F59E0B' },
 ];
 
 const EMPTY_SUMMARY: ArchiveSummaryItem = {
@@ -194,7 +194,6 @@ function CaseStudyCard({
   accent: string;
   onClick: () => void;
 }) {
-  const qMap: Record<SignalType, string> = { A: 'Q3', B: 'Q1', C: 'Q4', D: 'Q2' };
   const positive = item.return_20d >= 0;
   const metricColor = positive ? '#EF4444' : '#3B82F6';
 
@@ -214,7 +213,7 @@ function CaseStudyCard({
           className="inline-flex items-center rounded-md border px-2 py-0.5 text-2xs font-bold"
           style={{ borderColor: `${accent}55`, color: accent, background: `${accent}14` }}
         >
-          {qMap[item.type]}
+          Type {item.type}
         </span>
         <span className="font-numeric text-2xs text-ink-muted">{fmtDate(item.date)}</span>
       </div>
@@ -223,7 +222,7 @@ function CaseStudyCard({
         <span className="shrink-0 font-numeric text-2xs text-ink-muted">{item.ticker}</span>
       </div>
       <p className="mt-3 text-xs leading-relaxed text-ink-secondary">
-        기관 SFI {fmtSfi(item.sfi_inst)}, 외인 SFI {fmtSfi(item.sfi_frgn)}로 {qMap[item.type]} 발생.
+        기관 SFI {fmtSfi(item.sfi_inst)}, 외인 SFI {fmtSfi(item.sfi_frgn)}로 Type {item.type} 발생.
         5거래일 후 {fmtPct(item.return_5d)}, 20거래일 후 {fmtPct(item.return_20d)}.
       </p>
       <div className="mt-auto flex items-end justify-between pt-6">

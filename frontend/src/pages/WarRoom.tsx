@@ -19,17 +19,17 @@ import type {
 import { fmtPct } from '../lib/format';
 
 const TYPE_META: Record<SignalType, { label: string; sub: string; color: string }> = {
-  A: { label: 'Q3', sub: '동반 분산 매도', color: '#EF4444' },
-  B: { label: 'Q1', sub: '동반 매집 구간', color: '#10B981' },
-  C: { label: 'Q4', sub: '외인 단독 유입', color: '#06B6D4' },
-  D: { label: 'Q2', sub: '기관 방어 우위', color: '#F59E0B' },
+  A: { label: 'Type A', sub: '동반 분산 매도', color: '#EF4444' },
+  B: { label: 'Type B', sub: '동반 매집 구간', color: '#10B981' },
+  C: { label: 'Type C', sub: '외인 단독 유입', color: '#06B6D4' },
+  D: { label: 'Type D', sub: '기관 방어 우위', color: '#F59E0B' },
 };
 
 const PICK_LABEL: Record<SignalType, string> = {
-  A: 'Q3 — 동반 분산 매도',
-  B: 'Q1 — 동반 매집 구간',
-  C: 'Q4 — 외인 단독 유입',
-  D: 'Q2 — 기관 방어 우위',
+  A: 'Type A — 동반 분산 매도',
+  B: 'Type B — 동반 매집 구간',
+  C: 'Type C — 외인 단독 유입',
+  D: 'Type D — 기관 방어 우위',
 };
 
 const EMPTY_DOMINANCE: MarketDominance = {
@@ -38,6 +38,13 @@ const EMPTY_DOMINANCE: MarketDominance = {
 };
 
 const EMPTY_PICKS: Record<SignalType, TopPick[]> = { A: [], B: [], C: [], D: [] };
+
+const TYPE_DESC: Record<SignalType, string> = {
+  A: '외국인과 기관의 동반 분산 매도가 집중되며, 주요 방어선 이탈 위험이 높은 주의 구간입니다.',
+  B: '외국인과 기관의 자금이 동시에 유입되며 강한 상승 시너지를 내는 매수 주도 구간입니다.',
+  C: '기관의 매도세 속에서 외국인 자금이 단독으로 유입되며 수급 우위를 점하고 있는 구간입니다.',
+  D: '외국인의 매도세에도 불구하고, 기관이 적극적으로 물량을 받아내며 주가를 방어하는 구간입니다.',
+};
 
 // 시그널 카드용 아이코노그라픽 스파크라인 — 시계열 데이터가 아닌 Type 특성을 시각화한 정적 패턴
 //   A 위험: 우하향 / B 강세: 우상향 / C 충돌: 진폭 / D 방어: 횡보
@@ -127,7 +134,7 @@ export default function WarRoom() {
             bodyClassName="flex min-h-0 flex-1 flex-col"
           >
             <div className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-2">
-              {(['B', 'D', 'A', 'C'] as const).map((type) => {
+              {(['A', 'B', 'C', 'D'] as const).map((type) => {
                 const meta = TYPE_META[type];
                 const list = picks[type] ?? [];
                 if (list.length === 0) return null;
@@ -164,12 +171,13 @@ export default function WarRoom() {
       <div>
         <div className="mb-3 text-sm font-semibold text-ink-secondary">⚡ 오늘의 시그널 요약</div>
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          {(['B', 'D', 'A', 'C'] as const).map((t) => (
+          {(['A', 'B', 'C', 'D'] as const).map((t) => (
             <SignalTypeCard
               key={t}
               label={TYPE_META[t].label}
               sub={TYPE_META[t].sub}
               color={TYPE_META[t].color}
+              description={TYPE_DESC[t]}
               count={signals ? (t === 'A' ? signals.count_a : t === 'B' ? signals.count_b : t === 'C' ? signals.count_c : signals.count_d) : null}
               spark={TYPE_PATTERN[t]}
               onClick={() => navigate(`/screener?type=${t}`)}
@@ -241,6 +249,7 @@ function SignalTypeCard({
   label,
   sub,
   color,
+  description,
   count,
   spark,
   onClick,
@@ -248,6 +257,7 @@ function SignalTypeCard({
   label: string;
   sub: string;
   color: string;
+  description: string;
   count: number | null;
   spark: number[];
   onClick: () => void;
@@ -255,6 +265,7 @@ function SignalTypeCard({
   return (
     <button
       onClick={onClick}
+      title={description}
       className="group relative overflow-hidden rounded-lg border border-border-subtle bg-surface p-5 text-left transition hover:-translate-y-0.5 hover:border-border hover:bg-surface-2 hover:shadow-elevated"
       style={{ borderLeft: `4px solid ${color}` }}
     >
