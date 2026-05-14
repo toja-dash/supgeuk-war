@@ -66,7 +66,7 @@ def generate_insights(row: pd.Series) -> dict:
     sfi_i_str = f"{sfi_i:+.1f}%" if pd.notna(sfi_i) else "N/A"
     sfi_f_str = f"{sfi_f:+.1f}%" if pd.notna(sfi_f) else "N/A"
     
-    line1 = f"오늘 기관 SFI {sfi_i_str}, 외인 SFI {sfi_f_str}으로 {q_label} 사분면에 위치합니다."
+    line1 = f"오늘 기관 SFI {sfi_i_str}, 외인 SFI {sfi_f_str}으로 {q_label} 흐름에 해당합니다."
     
     line2 = ""
     if def_stat == 'SAFE':

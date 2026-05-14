@@ -87,12 +87,12 @@ def generate_market_brief(df: pd.DataFrame) -> dict:
     
     # 1단 문장
     if m_i_total > 1.0 and m_f_total > 1.0:
-        brief = "오늘 시장은 **기관·외국인 동반 매집**으로 강한 상승 동력이 형성됐습니다."
+        brief = "오늘 시장은 **동반 매집 구간**에 진입하며 강한 상승 동력이 형성됐습니다."
     elif m_f_total > 1.0 and m_i_total <= 1.0:
         sec = top_sector_frgn or "특정 섹터"
-        brief = f"오늘 시장은 **외인 단독 유입(Type C)** 기조 속에 {sec} 집중 매수가 돋보였습니다."
+        brief = f"오늘 시장은 **외인 단독 유입** 기조 속에 {sec} 집중 매수가 돋보였습니다."
     elif m_i_total > 1.0 and m_f_total <= 1.0:
-        brief = "오늘 시장은 **기관 방어 우위(Type D)** 흐름을 보이며 지수 하락을 저지했습니다."
+        brief = "오늘 시장은 **기관 방어 우위** 흐름을 보이며 지수 하락을 저지했습니다."
     elif m_i_total < -1.0 and m_f_total < -1.0:
         brief = "오늘 시장은 **동반 분산 매도**로 하락 압력을 받았습니다."
     elif m_f_total < -1.0 and m_i_total >= -1.0:
@@ -105,9 +105,9 @@ def generate_market_brief(df: pd.DataFrame) -> dict:
     conflict_count = count_type_c + count_type_d
     if total_count > 0 and (conflict_count / total_count) >= 0.01:
         if conflict_count >= 50:
-            brief += f" 특히 {conflict_count}개 종목에서 기관·외인 수급 충돌이 발생하여 세밀한 종목 선별이 필요합니다."
+            brief += f" 특히 {conflict_count}개 종목에서 외인 단독 유입·기관 방어 우위 흐름이 동시에 나타나, 종목별 분리 분석이 필요합니다."
         else:
-            brief += f" 단, 충돌 종목(Type C·D)이 {conflict_count}개 발생하여 수급 엇갈림 현상이 관찰됩니다."
+            brief += f" 단, 외인 단독 유입·기관 방어 우위 종목이 {conflict_count}개 발생하여 수급 엇갈림 현상이 관찰됩니다."
             
     # 3단 위험
     if count_type_a >= 30:

@@ -81,6 +81,49 @@ def upgrade() -> None:
         where p.date = ms.date
         """
     )
+    op.execute(
+        """
+        update market_summary
+        set market_brief_text = replace(
+            replace(
+                replace(
+                    replace(
+                        replace(
+                            replace(
+                                replace(
+                                    replace(
+                                        replace(
+                                            market_brief_text,
+                                            '기관·외국인 쌍끌이 매수',
+                                            '동반 매집 구간'
+                                        ),
+                                        '기관·외국인 동반 매집',
+                                        '동반 매집 구간'
+                                    ),
+                                    '쌍끌이 매도',
+                                    '동반 분산 매도'
+                                ),
+                                'Type A(쌍끌이 설거지)',
+                                'Type A(동반 분산 매도)'
+                            ),
+                            '쌍끌이 설거지',
+                            '동반 분산 매도'
+                        ),
+                        '기관 단독 매수',
+                        '기관 방어 우위'
+                    ),
+                    '기관·외인 충돌',
+                    '외인 단독 유입·기관 방어 우위 흐름'
+                ),
+                '기관·외인 수급 충돌',
+                '외인 단독 유입·기관 방어 우위 흐름'
+            ),
+            '충돌 종목(Type C·D)',
+            '외인 단독 유입·기관 방어 우위 종목'
+        )
+        where market_brief_text is not null
+        """
+    )
 
 
 def downgrade() -> None:
