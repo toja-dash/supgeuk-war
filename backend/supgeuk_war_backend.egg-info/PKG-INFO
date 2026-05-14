@@ -8,11 +8,12 @@ Requires-Dist: uvicorn[standard]
 Requires-Dist: sqlalchemy
 Requires-Dist: alembic
 Requires-Dist: asyncpg
+Requires-Dist: greenlet
 Requires-Dist: redis
 Requires-Dist: apscheduler
 Requires-Dist: pandas
 Requires-Dist: numpy
-Requires-Dist: pykrx==1.0.51
+Requires-Dist: pykrx==1.2.8
 Requires-Dist: finance-datareader
 Requires-Dist: pydantic-settings
 Requires-Dist: setuptools<81
