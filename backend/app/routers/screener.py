@@ -41,11 +41,13 @@ async def get_screener(
             "message": None,
         }
     
+    from app.services.screening import TRADE_VALUE_FLOOR
     stmt = (
         select(MarketIndicators, StockMaster, MarketRawData)
         .join(StockMaster, MarketIndicators.ticker == StockMaster.ticker)
         .outerjoin(MarketRawData, (MarketIndicators.ticker == MarketRawData.ticker) & (MarketRawData.date == t_date))
         .where(MarketIndicators.date == t_date)
+        .where(MarketRawData.trade_value >= TRADE_VALUE_FLOOR)
     )
     
     if type and type != "ALL":
