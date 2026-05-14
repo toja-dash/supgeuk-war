@@ -121,8 +121,12 @@ export default function WarRoom() {
         </div>
 
         <div className="col-span-12 xl:col-span-3">
-          <Card title="👁 오늘의 주목 종목" className="h-[390px]">
-            <div className="scrollbar-thin flex max-h-[310px] flex-col gap-4 overflow-y-auto pr-2">
+          <Card
+            title="👁 오늘의 주목 종목"
+            className="flex h-[390px] flex-col"
+            bodyClassName="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-2">
               {(['B', 'D', 'A', 'C'] as const).map((type) => {
                 const meta = TYPE_META[type];
                 const list = picks[type] ?? [];

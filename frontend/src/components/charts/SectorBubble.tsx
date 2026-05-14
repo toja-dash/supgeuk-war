@@ -96,6 +96,7 @@ export function SectorBubble({ data, onSelect }: Props) {
           />
           <Tooltip
             cursor={{ strokeDasharray: '3 3' }}
+            wrapperStyle={{ zIndex: 50, transition: 'none', pointerEvents: 'none' }}
             contentStyle={{
               backgroundColor: '#111827',
               border: '1px solid #374151',
