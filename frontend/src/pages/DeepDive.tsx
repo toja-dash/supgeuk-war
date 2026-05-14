@@ -160,25 +160,26 @@ export default function DeepDive() {
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-5">
       {/* Row 1 — 종목 헤더 */}
-      <div className="flex flex-wrap items-end gap-4 border-b border-border-subtle pb-4">
-        <div className="flex items-end gap-3">
-          <h1 className="text-2xl font-bold text-ink-primary">{s.name}</h1>
-          <span className="mb-1 rounded bg-surface-2 px-2 py-0.5 font-numeric text-sm text-ink-muted">
-            {s.ticker}
-          </span>
-          <span className="mb-1 rounded bg-surface-2 px-2 py-0.5 text-xs text-ink-secondary">
-            {s.market} · {s.sector}
-          </span>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-subtle pb-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="text-2xl font-bold leading-none text-ink-primary">{s.name}</h1>
+            <span className="rounded bg-surface-2 px-2 py-0.5 font-numeric text-xs text-ink-muted">
+              {s.ticker}
+            </span>
+            <span className="rounded bg-surface-2 px-2 py-0.5 text-xs text-ink-secondary">
+              {s.market} · {s.sector}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-numeric text-3xl font-bold leading-none text-ink-primary">
+              {fmtPrice(s.close)}
+            </span>
+            <ChangePct value={s.change_pct} />
+            <TypeBadge type={s.type} />
+            <DefenseBadge state={s.defense_status} />
+          </div>
         </div>
-        <div className="flex items-baseline gap-2">
-          <span className="font-numeric text-3xl font-bold text-ink-primary">{fmtPrice(s.close)}</span>
-          <ChangePct value={s.change_pct} />
-        </div>
-        <div className="flex items-center gap-2">
-          <TypeBadge type={s.type} />
-          <DefenseBadge state={s.defense_status} />
-        </div>
-        <div className="flex-grow" />
         <button
           onClick={() => navigate('/screener')}
           className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-xs text-ink-secondary transition hover:text-ink-primary"
